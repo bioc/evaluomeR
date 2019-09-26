@@ -52,7 +52,7 @@ range [0,1], having the following meaning:
 # Using example data from our package
 data("ontMetrics")
 # Without plotting
-dataFrameList = qualityRange(ontMetrics, k.range=c(2,3), getImages = FALSE)
+dataFrameList = qualityRange(ontMetrics, k.range=c(2,6), getImages = FALSE)
 
 }
 \references{
