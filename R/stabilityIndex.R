@@ -110,7 +110,7 @@ stabilityRange <- function(data, k.range=c(2,15), bs=100,
     stop("The first value of k.range cannot be greater than its second value")
   }
 
-  data <- as.data.frame(SummarizedExperiment::assay(data))
+  data <- as.data.frame(assay(data))
 
   suppressWarnings(
     runStabilityIndex(data, k.min=k.min, k.max=k.max, bs))
@@ -140,12 +140,11 @@ runStabilityIndex <- function(data, k.min, k.max, bs) {
   contador=0
   i.min=k.min
   i.max=k.max
-  k.range.length = length(i.min:i.max)+1
+
   for (i.metr in 1:length(names.metr)) {
     cat("Processing metric: ", names.metr[i.metr],"(", i.metr,")\n")
-    m.stab.global[[i.metr]]=matrix(data=NA, nrow=1,
-                                   ncol=k.range.length)
-
+    m.stab.global[[i.metr]]=matrix(data=NA, nrow=length(names.metr),
+                                   ncol=length(i.min:i.max))
     for (j.k in i.min:i.max) {
       cat("\tCalculation of k = ", j.k,"\n")
       estable=NULL
@@ -182,6 +181,7 @@ runStabilityIndex <- function(data, k.min, k.max, bs) {
           km5$partition=km5$bspart.or
           km5$jac.stab=km5$jac.or
         }
+
         m.stab.global[[i.metr]][j.k] = mean(km5$jac.stab)
         estable[[which(bs.values==bs)]]=km5
       } else {
@@ -205,8 +205,7 @@ runStabilityIndex <- function(data, k.min, k.max, bs) {
 
   e.stab.global=NULL
   for (j.k in i.min:i.max) {
-    #e.stab.global[[j.k]]=matrix(data=NA, nrow=length(names.metr), ncol=length(i.min:i.max))
-    e.stab.global[[j.k]]=matrix(data=NA, nrow=k.range.length, ncol=1)
+    e.stab.global[[j.k]]=matrix(data=NA, nrow=length(names.metr), ncol=length(i.min:i.max))
     for (i.metr in 1:length(names.metr)) {
       e.stab.global[[j.k]][i.metr]=m.stab.global[[i.metr]][j.k]
     }
@@ -214,7 +213,6 @@ runStabilityIndex <- function(data, k.min, k.max, bs) {
 
   pkg.env$m.stab.global = m.stab.global
   pkg.env$e.stab.global = e.stab.global
-  pkg.env$names.metr = names.metr
   # return(stabilityDataFrame)
   return(NULL)
 }
@@ -236,8 +234,7 @@ runStabilityIndexTableRange <- function(k.min, k.max) {
   # Build rows
   for (i.metr in 1:length(names.metr)) {
     jackMean = m.stab.global[[i.metr]]
-    #jackMean = jackMean[!is.na(jackMean)]
-    jackMean = jackMean[c(k.min:k.max)]
+    jackMean = jackMean[!is.na(jackMean)]
     wrapper=NULL # Wrapper object to extract the data
     wrapper$metric=names.metr[i.metr]
     wrapper$jacMean=jackMean
@@ -278,12 +275,8 @@ runStabilityIndexK_IMG <- function(bs, k.min, k.max) {
   on.exit(par(margins))
   for (j.k in i.min:i.max) {
     cur.data = e.stab.global[[j.k]]
-    #cur.data = cur.data[!is.na(cur.data)]
-    #cur.data = cur.data[c(i.min:i.max)
-    ymin = min(!is.na(cur.data))
-    if (is.na(ymin)) {
-      ymin = 0
-    }
+    cur.data = cur.data[!is.na(cur.data)]
+    ymin = min(cur.data)
     xnames=as.character(names.metr)
     ynames="Global Stability Indices"
     g.main=paste(" St. Indices of the metrics for k=", j.k,sep="")
@@ -325,9 +318,6 @@ runStabilityIndexMetric_IMG <- function(bs, k.min, k.max) {
     cur.data = m.stab.global[[i.metr]]
     cur.data = cur.data[!is.na(cur.data)]
     ymin = min(cur.data)
-    if (is.na(ymin) || ymin == Inf) {
-      ymin = 0
-    }
     xnames=c(k.min:k.max)
     ynames="Global Stability Indices"
     g.main=paste(" St. Indices of '", names.metr[i.metr], "' for k in [",

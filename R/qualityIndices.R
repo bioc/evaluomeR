@@ -93,7 +93,7 @@ quality <- function(data, k=5, getImages=TRUE) {
 #' # Using example data from our package
 #' data("ontMetrics")
 #' # Without plotting
-#' dataFrameList = qualityRange(ontMetrics, k.range=c(2,3), getImages = FALSE)
+#' dataFrameList = qualityRange(ontMetrics, k.range=c(2,6), getImages = FALSE)
 #'
 #' @references
 #' \insertRef{kaufman2009finding}{evaluomeR}
@@ -165,34 +165,31 @@ runQualityIndicesSilhouette <- function(data, k.min, k.max, bs) {
 
       e.res$n.k=j.k
       e.res$name.ontology=datos.bruto$Description
-      unique.values = length(unique(datos.bruto[,i]))
-      if (unique.values < j.k) {
-        estable[[contador]] = NA
-        m.global[[i.metr]][j.k,] = NA
-      } else {
-        e.res$kmk.dynamic.bs <- boot.cluster(data=datos.bruto[,i], nk=j.k, B=bs)$partition
-        e.res.or$centr=by(datos.bruto[,i],e.res$kmk.dynamic.bs,mean)
-        for (e.res.or.i in 1:length(e.res.or$centr)) {
-          e.res.or$means[which(e.res$kmk.dynamic.bs==e.res.or.i)]=e.res.or$centr[e.res.or.i]}
 
-        e.res$kmk.dynamic.bs.or=ordered(e.res.or$means,labels=seq(1,length(e.res.or$centr)))
+      e.res$kmk.dynamic.bs <- boot.cluster(data=datos.bruto[,i], nk=j.k, B=bs)$partition
 
-        ## Using Silhouette width as index
-        metric.onto=datos.bruto[,i.metr+1]
-        part.onto=as.numeric(e.res$kmk.dynamic.bs.or)
-        sil.w=silhouette(part.onto, dist(metric.onto))
-        sil.c = NULL
-        sil.c$n=length(sil.w[,1])
-        sil.c$cluster.size=as.numeric(summary(sil.w)$clus.sizes)
-        sil.c$cluster.number=length(summary(sil.w)$cluster.size)
-        sil.c$clus.avg.silwidths=summary(sil.w)$clus.avg.widths
-        sil.c$avg.silwidths=summary(sil.w)$avg.width
-        e.res$sil.w = sil.w
-        e.res$sil.c = sil.c
-        estable[[contador]]=e.res
+      e.res.or$centr=by(datos.bruto[,i],e.res$kmk.dynamic.bs,mean)
 
-        m.global[[i.metr]][j.k,] = mean(sil.w[,"sil_width"])
-      }
+      for (e.res.or.i in 1:length(e.res.or$centr)) {
+        e.res.or$means[which(e.res$kmk.dynamic.bs==e.res.or.i)]=e.res.or$centr[e.res.or.i]}
+
+      e.res$kmk.dynamic.bs.or=ordered(e.res.or$means,labels=seq(1,length(e.res.or$centr)))
+
+      ## Using Silhouette width as index
+      metric.onto=datos.bruto[,i.metr+1]
+      part.onto=as.numeric(e.res$kmk.dynamic.bs.or)
+      sil.w=silhouette(part.onto, dist(metric.onto))
+      sil.c = NULL
+      sil.c$n=length(sil.w[,1])
+      sil.c$cluster.size=as.numeric(summary(sil.w)$clus.sizes)
+      sil.c$cluster.number=length(summary(sil.w)$cluster.size)
+      sil.c$clus.avg.silwidths=summary(sil.w)$clus.avg.widths
+      sil.c$avg.silwidths=summary(sil.w)$avg.width
+      e.res$sil.w = sil.w
+      e.res$sil.c = sil.c
+      estable[[contador]]=e.res
+
+      m.global[[i.metr]][j.k,] = mean(sil.w[,"sil_width"])
     }
   }
   for (j.k in i.min:i.max) {
@@ -246,9 +243,6 @@ runQualityIndicesSilhouetteK_IMG <- function(k.min, k.max) {
     xleg=((xmax-xmin)*escalal)+3.2
     c.max=dim(e.mat.global[[m.g]])[2]
     ymin=min(e.mat.global[[m.g]])
-    if (is.na(ymin)) {
-      ymin = 0
-    }
     ymax=1
     ymarcas=round(seq(ymin,ymax,length.out=5),2)
     yleg=ymin+((ymax-ymin)/2)*seq(c.max,1,-1)/(2*c.max)
@@ -309,17 +303,13 @@ runQualityIndicesSilhouetteMetric_IMG <- function(k.min, k.max) {
   on.exit(par(margins))
   for (m.g in 1:length(names.metr)) {
     cur.k.width = m.mat.global[[m.g]][,1]
-    cur.k.width = cur.k.width[c(i.min:i.max)]
-    #cur.k.width = cur.k.width[!is.na(cur.k.width)]
+    cur.k.width = cur.k.width[!is.na(cur.k.width)]
     leg.g=NULL
     xmin=min(x)-0.25
     xmax=max(x)+0.25
     xleg=((xmax-xmin)*escalal)+3.2
     c.max=dim(m.mat.global[[m.g]])[2]
     ymin=min(cur.k.width)
-    if (is.na(ymin)) {
-      ymin = 0
-    }
     ymax=1
     ymarcas=round(seq(ymin,ymax,length.out=5),2)
     yleg=ymin+((ymax-ymin)/2)*seq(c.max,1,-1)/(2*c.max)
@@ -380,16 +370,6 @@ runSilhouetteIMG <- function(data, k) {
     metric.name=names(datos.bruto)[i.metr+1]
 
     i.datos=i.metr
-    if (is.na(estable[[i.datos]])) {
-      next
-    }
-    for (estable.content in estable[[i.datos]]) {
-      if (is.list(estable.content)) {
-        # Could not calculate silhouette clustering for this metric
-        # (Data used for horizontal bars graph)
-        next
-      }
-    }
     if (estable[[i.datos]]$n.k==k.cl & estable[[i.datos]]$name.metric==metric.name) {
       part.onto=as.numeric(estable[[i.datos]]$kmk.dynamic.bs.or)
       onto.matrix[,(i.metr+1)]=part.onto
@@ -453,6 +433,7 @@ runSilhouetteTable <- function(data, k) {
   }
 
   silhouetteData$header = unlist(silhouetteData$header, use.names=FALSE)
+
   ##
   #  Building table header
   ##
@@ -460,42 +441,30 @@ runSilhouetteTable <- function(data, k) {
   onto.matrix=matrix(data=NA, nrow=length(datos.bruto[,1]), ncol=(length(names.metr)+1))
   onto.matrix[,1]=as.character(datos.bruto[,1])
   colnames(onto.matrix)=c("Datasets",paste(names.metr,sep="."))
+
   for (i.metr in 1:length(names.metr)) { # i.metr= n de metrica     i.metr=5
 
     metric.onto=datos.bruto[,i.metr+1]
     metric.name=names(datos.bruto)[i.metr+1]
     x.leyenda=0.99
-    #
+
     i.datos=i.metr
-    if (is.na(estable[[i.datos]])) {
-      next
-    }
-    for (estable.content in estable[[i.datos]]) {
-      if (is.list(estable.content)) {
-        # Could not calculate silhouette clustering for this metric
-        # (Data used for horizontal bars graph)
-        next
-      }
-    }
-    if (estable[[i.datos]]$n.k==k.cl &
-        estable[[i.datos]]$name.metric==metric.name) {
-        part.onto=as.numeric(estable[[i.datos]]$kmk.dynamic.bs.or)
-        onto.matrix[,(i.metr+1)]=part.onto
-        sil.w=silhouette(part.onto, dist(metric.onto))
-        sil.c = NULL
-        sil.c$n=length(sil.w[,1])
-        sil.c$cluster.size=as.numeric(summary(sil.w)$clus.sizes)
-        sil.c$cluster.number=length(summary(sil.w)$cluster.size)
-        sil.c$clus.avg.silwidths=summary(sil.w)$clus.avg.widths
-        sil.c$avg.silwidths=summary(sil.w)$avg.width
-        ## Building body rows
-        silhouetteData$body[[i.metr]]=c(metric.name, sil.c$clus.avg.silwidths, mean(sil.w[,"sil_width"]), sil.c$cluster.size)
-        silhouetteData$body[[i.metr]]=unlist(silhouetteData$body[[i.metr]], use.names=FALSE)
+    if (estable[[i.datos]]$n.k==k.cl & estable[[i.datos]]$name.metric==metric.name) {
+      part.onto=as.numeric(estable[[i.datos]]$kmk.dynamic.bs.or)
+      onto.matrix[,(i.metr+1)]=part.onto
+      sil.w=silhouette(part.onto, dist(metric.onto))
+      sil.c = NULL
+      sil.c$n=length(sil.w[,1])
+      sil.c$cluster.size=as.numeric(summary(sil.w)$clus.sizes)
+      sil.c$cluster.number=length(summary(sil.w)$cluster.size)
+      sil.c$clus.avg.silwidths=summary(sil.w)$clus.avg.widths
+      sil.c$avg.silwidths=summary(sil.w)$avg.width
+      ## Building body rows
+      silhouetteData$body[[i.metr]]=c(metric.name, sil.c$clus.avg.silwidths, mean(sil.w[,"sil_width"]), sil.c$cluster.size)
+      silhouetteData$body[[i.metr]]=unlist(silhouetteData$body[[i.metr]], use.names=FALSE)
     }
   }  # end for i.metr
-  # Remove empty positions in the list
-  # (just in case a metric could not be processed)
-  silhouetteData$body = silhouetteData$body[lapply(silhouetteData$body, length)>0]
+
   silhouetteDataFrame = t(data.frame(silhouetteData$body))
   colnames(silhouetteDataFrame) = silhouetteData$header
   rownames(silhouetteDataFrame) <- NULL
@@ -533,6 +502,7 @@ runSilhouetteTableRange <- function(data, k.min, k.max) {
   offset = 0
   estableLength = length(estable)
   names.metrLength = length(names.metr)
+
   silhouetteData <- list()
   silhouetteDataIndex <- vector(mode="integer", length=length(1:k.max))
   for (k in k.min:k.max) {
@@ -542,25 +512,23 @@ runSilhouetteTableRange <- function(data, k.min, k.max) {
     rownames(silhouetteData[[k]]) <- NULL
     silhouetteDataIndex[k] = 1
   }
+
   # estable object stores names.metr * length(k.min:k.max) entries
   for (i.metr in 1:estableLength) {
-
     cur.metr = as.integer(abs(i.metr-(names.metrLength*offset)))
     cur.data = estable[[i.metr]]
-    if (!is.na(cur.data)) {
-      cur.k = cur.data$n.k
+    cur.k = cur.data$n.k
 
-      cur.row <- list(cur.data$name.metric)
-      cur.row <- c(cur.row, cur.data$sil.c$clus.avg.silwidths)
-      #cur.row <- c(cur.row, cur.data$sil.c$avg.silwidth)
-      cur.row <- c(cur.row, mean(cur.data$sil.w[,"sil_width"]))
-      cur.row <- c(cur.row, cur.data$sil.c$cluster.size)
-      cur.row <- unlist(cur.row, use.names = FALSE)
+    cur.row <- list(cur.data$name.metric)
+    cur.row <- c(cur.row, cur.data$sil.c$clus.avg.silwidths)
+    #cur.row <- c(cur.row, cur.data$sil.c$avg.silwidth)
+    cur.row <- c(cur.row, mean(cur.data$sil.w[,"sil_width"]))
+    cur.row <- c(cur.row, cur.data$sil.c$cluster.size)
+    cur.row <- unlist(cur.row, use.names = FALSE)
 
-      index = silhouetteDataIndex[cur.k]
-      silhouetteData[[cur.k]] = insertRow(silhouetteData[[cur.k]], cur.row,index)
-      silhouetteDataIndex[cur.k] = index + 1
-    }
+    index = silhouetteDataIndex[cur.k]
+    silhouetteData[[cur.k]] = insertRow(silhouetteData[[cur.k]], cur.row,index)
+    silhouetteDataIndex[cur.k] = index + 1
 
     if (cur.metr == names.metrLength) { # Last metric
       offset = offset + 1
