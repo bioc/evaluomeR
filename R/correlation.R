@@ -53,6 +53,7 @@ runMetricsCorrelationIMG <- function(data, correlations, margins) {
   ## para graficos de correlaciones
   col1 <- colorRampPalette(c("#7F0000","red","#FF7F00","yellow","white",
                              "cyan", "#007FFF", "blue","#00007F"))
+  #col1 <- colorRampPalette(c("black", "grey70"))
   col2 <- colorRampPalette(c("#67001F", "#B2182B", "#D6604D", "#F4A582", "#FDDBC7",
                              "#FFFFFF", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"))
   col3 <- colorRampPalette(c("red", "white", "blue"))

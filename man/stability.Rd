@@ -4,7 +4,7 @@
 \alias{stability}
 \title{Stability index.}
 \usage{
-stability(data, k = 5, bs = 100, getImages = TRUE)
+stability(data, k = 5, bs = 100, getImages = TRUE, seed = NULL)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -20,6 +20,8 @@ The rows contains the measurements of the metrics for each instance in the datas
 \item{bs}{Positive integer. Bootstrap value to perform the resampling.}
 
 \item{getImages}{Boolean. If true, a plot is displayed.}
+
+\item{seed}{Positive integer. A seed for internal bootstrap.}
 }
 \value{
 A \code{\link{SummarizedExperiment}},

@@ -14,7 +14,7 @@ author:
 - name: "Jesualdo Tomás Fernández-Breis"
   affiliation: *dis
 package: evaluomeR
-date: "2019-02-11"
+date: "2019-10-21"
 bibliography: ../inst/REFERENCES.bib
 biblio-style: apsr
 link-citations: yes
@@ -326,6 +326,70 @@ stabilityData <- stability(rnaMetrics, k=5, bs = 50, getImages = FALSE)
 This prevents from generating any graph, performing only the calculus. By
 default `getImages` is set to `TRUE`.
 
+# Selecting the optimal value of k #
+
+`evaluomeR`analyzes the behavior of the metrics in terms of stability and goodness of the clusters for a range of values of $k$. In case of wishing to select the optimal value for $k$ for a metric in a given dataset we have implemented the `getOptimalKValue` function, which returns a table stating which is the optimal value of `k` for each metric.
+
+The algorithm works as follows: The highest stability and the highest goodness are obtained for the same value of $k$. In such case, that value would be the optimal one. On the other hand, the highest stability and the highest goodness are obtained for different values of $k$. In this case, additional criteria are needed. \textit{evaluomeR} does not currently aim at providing those criteria, but to provide the data that could permit the user to make decisions. In the use cases described in this paper, we will apply the following criteria for the latter case:
+
+* If both values of $k$ provide at least stable classifications (value >0.75), then we select the value of $k$ that provides the largest Silhouette width. The same would happen if none provides stable classifications.
+
+* If $k_1$ provides stable classifications and $k_2$ does not, we will select $k_1$ if the width of the Silhouette is at least reasonable.
+   
+* If $k_1$ provides stable classifications, $k_2$ does not, and the width of the Silhouette of $k_1$ is less than reasonable, then we will select the value of $k$ with the largest Silhouette width.
+
+```{r getOptimalKValue, results='hide', eval=TRUE, echo=TRUE}
+set.seed(100)
+stabilityData <- stabilityRange(data=ontMetrics, k.range=c(2,4), bs=20, getImages = FALSE)
+set.seed(100)
+qualityData <- qualityRange(data=ontMetrics, k.range=c(2,4), getImages = FALSE)
+
+kOptTable <- getOptimalKValue(stabilityData, qualityData)
+```
+
+```{r getOptimalKValue-table, results='asis', echo=FALSE}
+data <- kOptTable
+kable(data) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive")) %>%
+  scroll_box(width = "100%", height = "150px")
+```
+
+Additionally, you can select another subset of `k.range` to delimit the range of the optimal `k`.
+
+```{r getOptimalKValue-delimited, results='hide', eval=TRUE, echo=TRUE}
+kOptTable <- getOptimalKValue(stabilityData, qualityData, k.range=c(3,4))
+```
+
+```{r getOptimalKValue-table-delimited, results='asis', echo=FALSE}
+data <- kOptTable
+kable(data) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive")) %>%
+  scroll_box(width = "100%", height = "150px")
+```
+
+
+# Metric analysis #
+
+We provide a series of methods for a further analysis on the metrics. These methods are: `plotMetricsMinMax`, `plotMetricsBoxplot` and `plotMetricsCluster`.
+
+The `plotMetricsMinMax` function plots the minimum, maximum and standard deviation of min/max points of the values of each metric:
+
+```{r plotMetricsMinMax, results='hide', eval=TRUE, echo=TRUE}
+plotMetricsMinMax(ontMetrics)
+```
+
+The `plotMetricsBoxplot` method boxplots the value of each metric:
+
+```{r plotMetricsBoxplot, results='hide', eval=TRUE, echo=TRUE}
+plotMetricsBoxplot(ontMetrics)
+```
+
+And finally, the `plotMetricsCluster` function clusters the values of the metrics by 
+using the euclidean distance and the method `ward.D2` from `hclust`:
+
+```{r plotMetricsCluster, results='hide', eval=TRUE, echo=TRUE}
+plotMetricsCluster(ontMetrics)
+```
 
 # Information #
 
