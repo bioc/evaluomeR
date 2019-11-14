@@ -20,10 +20,9 @@
 getDataQualityRange <- function(data, k) {
   dataNames = names(data)
   # From, e.g, k_4 to 4
-  kValues = substr(dataNames, nchar(dataNames)-0, nchar(dataNames))
+  kValues = sapply(strsplit(dataNames, split='_', fixed=TRUE), function(x) (x[2]))
   kValues = as.integer(kValues)
   kValues.length = length(kValues)
-
   if (k >= kValues[1] && k <= kValues[kValues.length]) {
     column = paste("k_", k, sep="")
 

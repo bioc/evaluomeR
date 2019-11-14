@@ -4,12 +4,21 @@ importFrom("cluster","silhouette")
 importFrom("grDevices", "colorRampPalette")
 importFrom("grDevices", "dev.off")
 importFrom("graphics", "axis", "legend", "mtext", "par", "plot")
-importFrom("stats", "cor", "dist", "na.omit", "kmeans")
+importFrom("stats", "cor", "dist", "na.omit", "kmeans", "hclust")
 importFrom("SummarizedExperiment", "assays")
 importFrom("SummarizedExperiment", "assay")
 importFrom("SummarizedExperiment", "SummarizedExperiment")
 importFrom("MultiAssayExperiment", "ExperimentList")
 importFrom("MultiAssayExperiment", "DataFrame")
+importFrom("ggdendro", "ggdendrogram")
+importFrom("reshape2", "melt")
+importFrom("ggplot2", "ggplot", "guides", "scale_y_continuous",
+           "position_dodge", "geom_errorbar", "element_line",
+           "geom_point", "geom_linerange", "theme_set", "labs",
+           "aes", "geom_boxplot", "theme_bw", "theme", "element_text",
+           "geom_violin", "scale_color_grey")
+
+importFrom("matrixStats", "colMaxs", "colMins", "colSds")
 
 export(stability)
 export(stabilityRange)
@@ -17,3 +26,8 @@ export(quality)
 export(qualityRange)
 export(metricsCorrelations)
 export(getDataQualityRange)
+export(plotMetricsMinMax)
+export(plotMetricsBoxplot)
+export(plotMetricsCluster)
+export(plotMetricsViolin)
+export(getOptimalKValue)

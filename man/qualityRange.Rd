@@ -4,7 +4,7 @@
 \alias{qualityRange}
 \title{Goodness of classifications for a range of k clusters.}
 \usage{
-qualityRange(data, k.range = c(3, 5), getImages = TRUE)
+qualityRange(data, k.range = c(3, 5), getImages = TRUE, seed = NULL)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -21,6 +21,8 @@ whilst the second one, \code{k.range[2]}, as the higher. Both values must be
 contained in [2,15] range.}
 
 \item{getImages}{Boolean. If true, a plot is displayed.}
+
+\item{seed}{Positive integer. A seed for internal bootstrap.}
 }
 \value{
 A list of \code{\link{SummarizedExperiment}} containing the silhouette width measurements and
@@ -52,7 +54,7 @@ range [0,1], having the following meaning:
 # Using example data from our package
 data("ontMetrics")
 # Without plotting
-dataFrameList = qualityRange(ontMetrics, k.range=c(2,6), getImages = FALSE)
+dataFrameList = qualityRange(ontMetrics, k.range=c(2,3), getImages = FALSE)
 
 }
 \references{

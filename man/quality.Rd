@@ -4,7 +4,7 @@
 \alias{quality}
 \title{Goodness of classifications.}
 \usage{
-quality(data, k = 5, getImages = TRUE)
+quality(data, k = 5, getImages = TRUE, seed = NULL)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -18,6 +18,8 @@ The rows contains the measurements of the metrics for each instance in the datas
 \item{k}{Positive integer. Number of clusters between [2,15] range.}
 
 \item{getImages}{Boolean. If true, a plot is displayed.}
+
+\item{seed}{Positive integer. A seed for internal bootstrap.}
 }
 \value{
 A \code{\link{SummarizedExperiment}} containing the silhouette width measurements and

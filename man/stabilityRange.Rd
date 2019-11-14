@@ -4,7 +4,8 @@
 \alias{stabilityRange}
 \title{Stability index for a range of k clusters.}
 \usage{
-stabilityRange(data, k.range = c(2, 15), bs = 100, getImages = TRUE)
+stabilityRange(data, k.range = c(2, 15), bs = 100, getImages = TRUE,
+  seed = NULL)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -23,6 +24,8 @@ contained in [2,15] range.}
 \item{bs}{Positive integer. Bootstrap value to perform the resampling.}
 
 \item{getImages}{Boolean. If true, a plot is displayed.}
+
+\item{seed}{Positive integer. A seed for internal bootstrap.}
 }
 \value{
 A \code{\link{SummarizedExperiment}} containing the stability measurements and
