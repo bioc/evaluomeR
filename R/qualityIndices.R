@@ -132,6 +132,9 @@ qualityRange <- function(data, k.range=c(3,5), getImages=TRUE, seed=NULL) {
 }
 
 runQualityIndicesSilhouette <- function(data, k.min, k.max, bs, seed) {
+  if (is.null(seed)) {
+    seed = pkg.env$seed
+  }
 
   datos.bruto=data
   names.metr=names(datos.bruto)[-c(1)]
@@ -151,10 +154,10 @@ runQualityIndicesSilhouette <- function(data, k.min, k.max, bs, seed) {
   i.max=k.max
 
   for (i.metr in 1:length(names.metr)) {
-    cat("Processing metric: ", names.metr[i.metr],"(", i.metr,")\n")
+    message("Processing metric: ", names.metr[i.metr],"(", i.metr,")")
     m.global[[i.metr]]=matrix(data=NA, nrow=i.max, ncol=length(i.min:i.max))
     for (j.k in i.min:i.max) {
-      cat("\tCalculation of k = ", j.k,"\n")
+      message("\tCalculation of k = ", j.k,"")
       e.res=NULL
       e.res.or=NULL
       contador=contador+1
@@ -285,7 +288,14 @@ runQualityIndicesSilhouetteK_IMG <- function(k.min, k.max) {
     axis(1,at=1:length(new_xnames),labels=new_xnames,las=2,cex.axis=0.75)
     axis(2,las=3,cex.axis=0.85)
     legend("bottomright", legend=labels, inset=.01, lwd=1, lty=stype, col="black", cex=0.7, pch=stype)
-
+    text(0.76, 0.75, "Strong", cex=0.6, col = "black")
+    abline(h = 0.7, col="black", lwd=1, lty=1) # Strong clust. strct.: (0.70, 1
+    text(0.76, 0.55, "Reasn.", cex=0.6, col = "black")
+    abline(h = 0.5, col="black", lwd=1, lty=2) # Reasonable clust. strct.: (0.50, 0.70]
+    text(0.76, 0.3, "Weak", cex=0.6, col = "black")
+    abline(h = 0.25, col="black", lwd=1, lty=3) # Weak clust. strct.: (0.25, 0.50]
+    text(0.77, 0.05, "No.strct", cex=0.6, col = "black")
+    abline(h = -1, col="black", lwd=1, lty=4) # No clust. strct.: [-1, 0.25]
     par(new=FALSE)
 
   }

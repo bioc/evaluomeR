@@ -8,7 +8,7 @@ getOptimalKValue}
 getOptimalKValue(stabData, qualData, k.range = NULL)
 }
 \arguments{
-\item{stabData}{An output \code{\link{SummarizedExperiment}} from
+\item{stabData}{An output \code{\link{ExperimentList}} from
 a \code{\link{stabilityRange}} execution.}
 
 \item{qualData}{An output \code{\link{SummarizedExperiment}} from

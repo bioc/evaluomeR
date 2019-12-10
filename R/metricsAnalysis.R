@@ -260,7 +260,7 @@ getFormattedK <- function(k) {
 #' @description
 #' This method finds the optimal value of K per each metric.
 #'
-#' @param stabData An output \code{\link{SummarizedExperiment}} from
+#' @param stabData An output \code{\link{ExperimentList}} from
 #' a \code{\link{stabilityRange}} execution.
 #'
 #' @param qualData An output \code{\link{SummarizedExperiment}} from
@@ -395,7 +395,7 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
 }
 
 checkStabilityQualityData <- function(stabData, qualData) {
-  stabDf = assay(stabData)
+  stabDf = assay(stabData, "stability_mean")
   lengthStabDf = length(colnames(stabDf[,-1]))
   stabRangeStart = gsub("^.*_.*_.*_","", colnames(stabDf[,-1])[1]) # Mean_stability_k_2 -> 2
   stabRangeEnd = gsub("^.*_.*_.*_","", colnames(stabDf[,-1])[lengthStabDf])
@@ -471,7 +471,7 @@ standardizeQualityData <- function(qualData, k.range=NULL) {
 # standardized dataframe to process.
 #
 standardizeStabilityData <- function(stabData, k.range=NULL) {
-  stabDf = as.data.frame(assay(stabData))
+  stabDf = as.data.frame(assay(stabData), "mean")
   lengthColnames = length(colnames(stabDf))
   toRemove = list()
   for (i in seq(1, lengthColnames, 1)) {

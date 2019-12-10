@@ -143,7 +143,7 @@ data. This requires to provide the descriptor of the desired dataset. The
 datasets availables can take the following values: "ontMetrics", "rnaMetrics" or
 "bioMetrics".
 
-```{r sample-input}
+```{r sample-input, message=FALSE}
 library(evaluomeR)
 data("ontMetrics")
 data("rnaMetrics")
@@ -180,15 +180,20 @@ stabilityData <- stability(rnaMetrics, k=2, bs = 100)
 ```
 
 The `stability` function returns the `stabilityData` object, a
-`SummarizedExperiment` that contains an assay with the information shown in
-the plot:
+`ExperimentList` that contains the several assays such as the stability mean or the mean, betweenss, totss, tot.swithinss and anova values from the `kmeans` clustering:
+
+```{r stability-0-assay, echo=TRUE}
+stabilityData
+```
+
+The stability indices plots shown when `getImages = TRUE` are generated with the values of the stability mean:
 
 ```{r stability-1-assay, results='hide', echo=TRUE, eval=FALSE}
-assay(stabilityData, 1)
+assay(stabilityData, "stability_mean")
 ```
 
 ```{r stability-1-table, results='asis', echo=FALSE}
-data <- assay(stabilityData, 1)
+data <- assay(stabilityData, "stability_mean")
 kable(data) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 ```
@@ -328,7 +333,7 @@ default `getImages` is set to `TRUE`.
 
 # Selecting the optimal value of k #
 
-`evaluomeR`analyzes the behavior of the metrics in terms of stability and goodness of the clusters for a range of values of $k$. In case of wishing to select the optimal value for $k$ for a metric in a given dataset we have implemented the `getOptimalKValue` function, which returns a table stating which is the optimal value of `k` for each metric.
+`evaluomeR` analyzes the behavior of the metrics in terms of stability and goodness of the clusters for a range of values of $k$. In case of wishing to select the optimal value for $k$ for a metric in a given dataset we have implemented the `getOptimalKValue` function, which returns a table stating which is the optimal value of `k` for each metric.
 
 The algorithm works as follows: The highest stability and the highest goodness are obtained for the same value of $k$. In such case, that value would be the optimal one. On the other hand, the highest stability and the highest goodness are obtained for different values of $k$. In this case, additional criteria are needed. \textit{evaluomeR} does not currently aim at providing those criteria, but to provide the data that could permit the user to make decisions. In the use cases described in this paper, we will apply the following criteria for the latter case:
 
@@ -339,10 +344,10 @@ The algorithm works as follows: The highest stability and the highest goodness a
 * If $k_1$ provides stable classifications, $k_2$ does not, and the width of the Silhouette of $k_1$ is less than reasonable, then we will select the value of $k$ with the largest Silhouette width.
 
 ```{r getOptimalKValue, results='hide', eval=TRUE, echo=TRUE}
-set.seed(100)
-stabilityData <- stabilityRange(data=ontMetrics, k.range=c(2,4), bs=20, getImages = FALSE)
-set.seed(100)
-qualityData <- qualityRange(data=ontMetrics, k.range=c(2,4), getImages = FALSE)
+stabilityData <- stabilityRange(data=ontMetrics, k.range=c(2,4), 
+                                bs=20, getImages = FALSE, seed=100)
+qualityData <- qualityRange(data=ontMetrics, k.range=c(2,4),
+                            getImages = FALSE, seed=100)
 
 kOptTable <- getOptimalKValue(stabilityData, qualityData)
 ```
@@ -370,7 +375,7 @@ kable(data) %>%
 
 # Metric analysis #
 
-We provide a series of methods for a further analysis on the metrics. These methods are: `plotMetricsMinMax`, `plotMetricsBoxplot` and `plotMetricsCluster`.
+We provide a series of methods for a further analysis on the metrics. These methods are: `plotMetricsMinMax`, `plotMetricsBoxplot`, `plotMetricsCluster` and `plotMetricsViolin`.
 
 The `plotMetricsMinMax` function plots the minimum, maximum and standard deviation of min/max points of the values of each metric:
 
@@ -381,15 +386,22 @@ plotMetricsMinMax(ontMetrics)
 The `plotMetricsBoxplot` method boxplots the value of each metric:
 
 ```{r plotMetricsBoxplot, results='hide', eval=TRUE, echo=TRUE}
-plotMetricsBoxplot(ontMetrics)
+plotMetricsBoxplot(rnaMetrics)
 ```
 
-And finally, the `plotMetricsCluster` function clusters the values of the metrics by 
+Next, the `plotMetricsCluster` function clusters the values of the metrics by 
 using the euclidean distance and the method `ward.D2` from `hclust`:
 
 ```{r plotMetricsCluster, results='hide', eval=TRUE, echo=TRUE}
 plotMetricsCluster(ontMetrics)
 ```
+
+And finally the `plotMetricsViolin` function:
+
+```{r plotMetricsViolin, results='hide', eval=TRUE, echo=TRUE}
+plotMetricsViolin(rnaMetrics)
+```
+
 
 # Information #
 

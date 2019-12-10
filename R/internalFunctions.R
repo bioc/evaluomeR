@@ -36,11 +36,14 @@ jaccard.cluster <- function(clust1,clust2) {
 #     stability cluster based on Jaccard by clustering bootstrap
 
 boot.cluster <- function(data, nk=5, B=10, seed=NULL, prnt=FALSE) {
+  old.seed <- .Random.seed
+  on.exit( { .Random.seed <<- old.seed } )
   if (!is.null(seed)) {
     #http://stackoverflow.com/questions/14324096/setting-seed-locally-not-globally-in-r?rq=1
-    old.seed <- .Random.seed
-    on.exit( { .Random.seed <<- old.seed } )
     set.seed(as.integer(seed)) #seed
+  } else {
+    # Default seed
+    set.seed(pkg.env$seed)
   }
   data <- as.matrix(data)
   n.data <- nrow(data)
@@ -66,5 +69,39 @@ boot.cluster <- function(data, nk=5, B=10, seed=NULL, prnt=FALSE) {
   bs.jaccard.mean <- apply(bs.jaccard, 1, mean, na.rm=TRUE) # 1=by rows
   return(list(result=cluster1, partition=cluster1$partition, nk=cluster1$nk,
               B=B, bsjaccard=bs.jaccard, means=bs.jaccard.mean))
+}
+######################################################
+
+######################################################
+#function
+#   fAnova(clusterResult, k, num.elements)
+#     Custom anova computation: F function.
+
+fAnova <- function(clusterResult, k, n) {
+  #cat("k: ", k, "\n")
+  #cat("clusterResult$betweenss: ", clusterResult$betweenss, "\n")
+  #cat("clusterResult$tot.withinss: ", clusterResult$tot.withinss, "\n")
+  #cat("(k-1): ", (k-1), "\n")
+  #cat("(n-k): ", (n-k), "\n")
+  #cat("d1: ", clusterResult$betweenss/(k-1), "\n")
+  #cat("d2: ", (clusterResult$tot.withinss)/(n-k), "\n")
+  #cat("r: ", (clusterResult$betweenss/(k-1))/(clusterResult$tot.withinss)/(n-k), "\n")
+  #("r: ", (clusterResult$betweenss/(k-1))/((clusterResult$tot.withinss)/(n-k)), "\n")
+
+  return ((clusterResult$betweenss/(k-1))/((clusterResult$tot.withinss)/(n-k)))
+}
+######################################################
+
+######################################################
+#function
+#   getMeasureValue(km5, measureName)
+#     Returns a measure as in km5$measureName
+
+getMeasureValue <- function(km5, measureName) {
+  if (startsWith(measureName, "cluster_")) {
+    return (toString(unlist(km5$csv[measureName], use.names = FALSE)))
+  } else {
+    stop("Unknown measure '", measureName, "'. Stopping.")
+  }
 }
 ######################################################

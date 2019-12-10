@@ -24,8 +24,8 @@ The rows contains the measurements of the metrics for each instance in the datas
 \item{seed}{Positive integer. A seed for internal bootstrap.}
 }
 \value{
-A \code{\link{SummarizedExperiment}},
-containing an assay with the stability measurements and means for 1 to k clusters.
+A \code{\link{ExperimentList}} containing the stability and cluster measurements
+ for k clusters.
 }
 \description{
 This analysis permits to estimate whether the clustering is meaningfully

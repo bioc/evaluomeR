@@ -27,8 +27,8 @@
 #' @param getImages Boolean. If true, a plot is displayed.
 #' @param seed Positive integer. A seed for internal bootstrap.
 #'
-#' @return A \code{\link{SummarizedExperiment}},
-#' containing an assay with the stability measurements and means for 1 to k clusters.
+#' @return A \code{\link{ExperimentList}} containing the stability and cluster measurements
+#'  for k clusters.
 #'
 #' @examples
 #' # Using example data from our package
@@ -55,7 +55,7 @@ stability <- function(data, k=5, bs=100,
     suppressWarnings(
       runStabilityIndexK_IMG(bs, k.min = k, k.max = k))
   }
-  se <- createSE(stabilityDataFrame)
+  se <- createSEList(stabilityDataFrame)
   return(se)
 }
 
@@ -83,8 +83,8 @@ stability <- function(data, k=5, bs=100,
 #' whilst the second one, \code{k.range[2]}, as the higher. Both values must be
 #' contained in [2,15] range.
 #'
-#' @return A \code{\link{SummarizedExperiment}} containing the stability measurements and
-#' means for 1 to k clusters.
+#' @return A \code{\link{ExperimentList}} containing the stability and cluster measurements
+#'  for 2 to k clusters.
 #'
 #' @examples
 #' # Using example data from our package
@@ -124,13 +124,17 @@ stabilityRange <- function(data, k.range=c(2,15), bs=100,
     suppressWarnings(
       runStabilityIndexMetric_IMG(bs, k.min=k.min, k.max=k.max))
   }
-  se <- createSE(stabilityDataFrame)
+  se <- createSEList(stabilityDataFrame)
   return(se)
 }
 
 runStabilityIndex <- function(data, k.min, k.max, bs, seed) {
+  if (is.null(seed)) {
+    seed = pkg.env$seed
+  }
   inversa=NULL
   m.stab.global = NULL
+  m.stab.global.csv = NULL # To store new CSV output measures without altering legacy code
   todo.estable = NULL
   datos.bruto=data
   names.metr=names(datos.bruto)[-c(1)]
@@ -142,13 +146,16 @@ runStabilityIndex <- function(data, k.min, k.max, bs, seed) {
   i.min=k.min
   i.max=k.max
   k.range.length = length(i.min:i.max)+1
-  for (i.metr in 1:length(names.metr)) {
-    cat("Processing metric: ", names.metr[i.metr],"(", i.metr,")\n")
+  num.metrics = length(names.metr)
+  for (i.metr in 1:num.metrics) {
+    message("Processing metric: ", names.metr[i.metr],"(", i.metr,")")
     m.stab.global[[i.metr]]=matrix(data=NA, nrow=1,
                                    ncol=k.range.length)
+    m.stab.global.csv[[i.metr]]=matrix(data=NA, nrow=1,
+                                       ncol=k.range.length)
 
     for (j.k in i.min:i.max) {
-      cat("\tCalculation of k = ", j.k,"\n")
+      message("\tCalculation of k = ", j.k,"")
       estable=NULL
       contador=contador+1
       i=i.metr+1
@@ -161,14 +168,29 @@ runStabilityIndex <- function(data, k.min, k.max, bs, seed) {
       v.size=length(levels(as.factor(datos.bruto[,i])))
       if (v.size>=j.k) {
 
-        km5$cluster=boot.cluster(data=datos.bruto[,i],
-                                 nk=j.k, B=bs, seed=seed)
+        #km5$cluster=boot.cluster(data=datos.bruto[,i],
+        #                         nk=j.k, B=bs, seed=seed)
+        #km5$jac=km5$cluster$means
+        km5$cluster=quiet(clusterboot(data=datos.bruto[,i], B=bs,
+                                bootmethod="boot",
+                                clustermethod=kmeansCBI,
+                                krange=j.k, seed=seed))
+        km5$jac=km5$cluster$bootmean
         km5$bspart=km5$cluster$partition
-        km5$jac=km5$cluster$means
+
+        km5$csv = NULL
+        km5$csv$cluster_mean = km5$cluster$bootmean
+        km5$csv$cluster_centers = km5$cluster$result$result$centers
+        km5$csv$cluster_size = km5$cluster$result$result$size
+        km5$csv$cluster_betweenss = km5$cluster$result$result$betweenss
+        km5$csv$cluster_totss = km5$cluster$result$result$totss
+        km5$csv$cluster_tot.withinss = km5$cluster$result$result$tot.withinss
+        km5$csv$cluster_anova = fAnova(km5$cluster$result$result, j.k, num.metrics)
 
         km5$centr=by(datos.bruto[,i],km5$bspart,mean)
         for (km5.i in 1:length(km5$centr)) {
-          km5$means[which(km5$bspart==km5.i)]=km5$centr[km5.i]}
+          km5$means[which(km5$bspart==km5.i)]=km5$centr[km5.i]
+        }
 
         km5$bspart.or=ordered(km5$means,labels=seq(1,length(km5$centr)))
 
@@ -185,7 +207,8 @@ runStabilityIndex <- function(data, k.min, k.max, bs, seed) {
           km5$jac.stab=km5$jac.or
         }
         m.stab.global[[i.metr]][j.k] = mean(km5$jac.stab)
-        estable[[which(bs.values==bs)]]=km5
+        m.stab.global.csv[[i.metr]][j.k] = list(km5)
+        estable[[which(bs.values==bs)]] = km5
       } else {
         km5$bspart=rep(NA,length(datos.bruto[,i]))
         km5$jac=rep(NA,j.k)
@@ -197,10 +220,21 @@ runStabilityIndex <- function(data, k.min, k.max, bs, seed) {
         km5$jac.inv=km5$jac
         km5$partition=km5$bspart.inv
         km5$jac.stab=km5$jac.inv
-        m.stab.global[[i.metr]][j.k]=mean(km5$jac.stab)
-        estable[[which(bs.values==bs)]]=km5
+
+        km5$csv = NULL
+        km5$csv$cluster_mean = NULL
+        km5$csv$cluster_centers = NULL
+        km5$csv$cluster_size = NULL
+        km5$csv$cluster_betweenss = NULL
+        km5$csv$cluster_totss = NULL
+        km5$csv$cluster_tot.withinss = NULL
+        km5$csv$cluster_anova = NULL
+
+        m.stab.global[[i.metr]][j.k] = mean(km5$jac.stab)
+        m.stab.global.csv[[i.metr]][j.k] = list(km5)
+        estable[[which(bs.values==bs)]] = km5
       }
-      estable$km5.dynamic=km5$partition
+      estable$km5.dynamic = km5$partition
       todo.estable[[contador]]=estable
     }
   }
@@ -214,42 +248,70 @@ runStabilityIndex <- function(data, k.min, k.max, bs, seed) {
     }
   }
 
+
+  pkg.env$m.stab.global.csv = m.stab.global.csv
   pkg.env$m.stab.global = m.stab.global
   pkg.env$e.stab.global = e.stab.global
   pkg.env$names.metr = names.metr
   #return(stabilityDataFrame)
-  return(NULL)
+  #return(NULL)
 }
 
 runStabilityIndexTableRange <- function(k.min, k.max) {
-  stabilityDataList = list()
+  stabilityDataFrame = NULL
 
   m.stab.global = pkg.env$m.stab.global
+  m.stab.global.csv = pkg.env$m.stab.global.csv
   names.metr = pkg.env$names.metr
 
-  # Build header
-  header <- list("Metric")
-  for (k in k.min:k.max) {
-    nextHeader <- paste("Mean_stability_k_", k, sep="")
-    header <- c(header, nextHeader)
+  measures = NULL
+  # Key = Dataframe name - Value = Header name for each k
+  measures["stability_mean"]= c("Mean_stability_k_")
+  measures["cluster_mean"]= c("Cluster_mean_k_")
+  measures["cluster_centers"]= c("Cluster_centers_k_")
+  measures["cluster_size"]= c("Cluster_size_k_")
+  measures["cluster_betweenss"]= c("Cluster_betweenss_k_")
+  measures["cluster_totss"]= c("Cluster_totss_k_")
+  measures["cluster_tot.withinss"]= c("Cluster_tot.withinss_k_")
+  measures["cluster_anova"]= c("Cluster_anova_k_")
+
+  for (measure in names(measures)) {
+    stabilityDataList = list()
+    # Build header
+    header <- list("Metric")
+    for (k in k.min:k.max) {
+      nextHeader <- paste(measures[measure], k, sep="")
+      header <- c(header, nextHeader)
+    }
+    header = unlist(header, use.names=FALSE)
+
+    # Build rows
+    for (i.metr in 1:length(names.metr)) {
+      measure.data.list = list()
+      wrapper=NULL # Wrapper object to extract the measure data
+      wrapper$metric=names.metr[i.metr]
+      if (measure == "stability_mean") {
+        jacMean = m.stab.global[[i.metr]]
+        cur.value = jacMean[c(k.min:k.max)]
+        measure.data.list = c(measure.data.list, cur.value)
+      } else {
+        km5.list = m.stab.global.csv[[i.metr]]
+        for (k in k.min:k.max) {
+          km5.cur = km5.list[[k]]
+          cur.value = getMeasureValue(km5.cur, measure)
+          measure.data.list = c(measure.data.list, cur.value)
+        }
+      }
+      wrapper[[measure]] = unlist(measure.data.list, use.names = FALSE)
+      stabilityDataList[[i.metr]] = unlist(wrapper, use.names=FALSE)
+    }  # end for i.metr
+
+    # Transform into dataframe
+    stabilityDataFrame[[measure]] = t(data.frame(stabilityDataList))
+    colnames(stabilityDataFrame[[measure]]) = header
+    rownames(stabilityDataFrame[[measure]]) <- NULL
   }
-  header = unlist(header, use.names=FALSE)
 
-  # Build rows
-  for (i.metr in 1:length(names.metr)) {
-    jackMean = m.stab.global[[i.metr]]
-    #jackMean = jackMean[!is.na(jackMean)]
-    jackMean = jackMean[c(k.min:k.max)]
-    wrapper=NULL # Wrapper object to extract the data
-    wrapper$metric=names.metr[i.metr]
-    wrapper$jacMean=jackMean
-    stabilityDataList[[i.metr]]=unlist(wrapper, use.names=FALSE)
-  }  # end for i
-
-  # Transform into dataframe
-  stabilityDataFrame = t(data.frame(stabilityDataList))
-  colnames(stabilityDataFrame) = header
-  rownames(stabilityDataFrame) <- NULL
   return(stabilityDataFrame)
 }
 
@@ -314,6 +376,14 @@ runStabilityIndexK_IMG <- function(bs, k.min, k.max) {
     legend("bottomright", legend=labels, inset=.01, lwd=1, lty=stype,
            col="black", cex=0.7, pch=stype)
     mtext(side=1, text="Metrics",line=4)
+    text(0.75, 0.9, "H.stab", cex=0.6, col = "black")
+    abline(h = 0.85, col="black", lwd=1, lty=1) # Highly Stable: (0.85, 1]
+    text(0.74, 0.8, "Stab", cex=0.6, col = "black")
+    abline(h = 0.75, col="black", lwd=1, lty=2) # Stable: (0.75, 0.85]
+    text(0.76, 0.65, "Doubt.", cex=0.6, col = "black")
+    abline(h = 0.60, col="black", lwd=1, lty=3) # Doubtful: [0.60, 0.75]
+    text(0.76, 0.05, "Unstab.", cex=0.6, col = "black")
+    abline(h = 0, col="black", lwd=1, lty=4) # Unstable: [0, 0.60)
     par(new=FALSE)
   }
 }

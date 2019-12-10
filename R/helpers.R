@@ -40,11 +40,13 @@ getDataQualityRange <- function(data, k) {
 
 pkg.env <- new.env()
 pkg.env$m.stab.global = NULL
+pkg.env$m.stab.global.csv = NULL
 pkg.env$m.global = NULL
 pkg.env$e.global = NULL
 pkg.env$estable = NULL
 pkg.env$names.index = NULL
 pkg.env$names.metr = NULL
+pkg.env$seed = 13606
 
 
 #####################
@@ -112,7 +114,10 @@ createSEList <- function(data) {
   for (i in 1:length) {
     cur.data <- data[[i]]
     dataMatrix <- suppressWarnings(data.matrix(cur.data))
-    dataMatrix[,1] <- cur.data$Metric
+    if (is.na(dataMatrix[1, "Metric"])) { # Metrics are NA? At least the first one
+      dataMatrix[,1] <- cur.data$Metric
+    }
+
     se <- createSE(dataMatrix)
     seList <- c(seList, se)
   }
