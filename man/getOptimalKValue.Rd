@@ -31,4 +31,5 @@ stabilityData <- stabilityRange(data=rnaMetrics, k.range=c(2,4), bs=20, getImage
 qualityData <- qualityRange(data=rnaMetrics, k.range=c(2,4), getImages = FALSE)
 kOptTable = getOptimalKValue(stabilityData, qualityData)
 
+
 }
