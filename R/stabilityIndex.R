@@ -49,7 +49,7 @@ stability <- function(data, k=5, bs=100,
   checkKValue(k)
   runStabilityIndex(data, k.min=k, k.max=k, bs, seed=seed)
   stabilityDataFrame <- suppressWarnings(
-    runStabilityIndexTableRange(k.min=k, k.max=k))
+    runStabilityIndexTableRange(data, k.min=k, k.max=k))
   if (getImages == TRUE) {
     suppressWarnings(
       runStabilityIndexK_IMG(bs, k.min = k, k.max = k))
@@ -114,7 +114,7 @@ stabilityRange <- function(data, k.range=c(2,15), bs=100,
 
   runStabilityIndex(data, k.min=k.min, k.max=k.max, bs, seed=seed)
   stabilityDataFrame <- suppressWarnings(
-    runStabilityIndexTableRange(k.min=k.min, k.max=k.max))
+    runStabilityIndexTableRange(data, k.min=k.min, k.max=k.max))
 
   if (getImages == TRUE) {
     suppressWarnings(
@@ -178,7 +178,7 @@ stabilitySet <- function(data, k.set=c(2,3), bs=100,
 
   runStabilityIndex(data, k.set = k.set, bs=bs, seed=seed)
   stabilityDataFrame <- suppressWarnings(
-    runStabilityIndexTableRange(k.set = k.set))
+    runStabilityIndexTableRange(data, k.set = k.set))
 
   if (getImages == TRUE) {
     suppressWarnings(
@@ -254,6 +254,7 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs, seed, k.set=NULL
         km5$bspart=km5$cluster$partition
 
         km5$csv = NULL
+        km5$csv$cluster_partition = km5$cluster$partition
         km5$csv$cluster_mean = km5$cluster$bootmean
         km5$csv$cluster_centers = km5$cluster$result$result$centers
         km5$csv$cluster_size = km5$cluster$result$result$size
@@ -297,6 +298,7 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs, seed, k.set=NULL
         km5$jac.stab=km5$jac.inv
 
         km5$csv = NULL
+        km5$csv$cluster_partition = NULL
         km5$csv$cluster_mean = NULL
         km5$csv$cluster_centers = NULL
         km5$csv$cluster_size = NULL
@@ -332,7 +334,7 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs, seed, k.set=NULL
   #return(NULL)
 }
 
-runStabilityIndexTableRange <- function(k.min=NULL, k.max=NULL, k.set=NULL) {
+runStabilityIndexTableRange <- function(data, k.min=NULL, k.max=NULL, k.set=NULL) {
   if (is.null(k.min) && is.null(k.max) && is.null(k.set)) {
     stop("runStabilityIndexTableRange: All k parameters are null!")
   }
@@ -345,6 +347,7 @@ runStabilityIndexTableRange <- function(k.min=NULL, k.max=NULL, k.set=NULL) {
   measures = NULL
   # Key = Dataframe name - Value = Header name for each k
   measures["stability_mean"]= c("Mean_stability_k_")
+  measures["cluster_partition"]= c("Cluster_partition_k_")
   measures["cluster_mean"]= c("Cluster_mean_k_")
   measures["cluster_centers"]= c("Cluster_centers_k_")
   measures["cluster_size"]= c("Cluster_size_k_")

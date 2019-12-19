@@ -94,6 +94,9 @@ checkDirectory <- function(path) {
   return(path)
 }
 
+sample.range <- function(x) {diff(range(x))}
+sample.min <- function(x) {min(x)}
+
 # data: One dataframe, thus one assay
 createSE <- function(data) {
   se = SummarizedExperiment(assays = data.matrix(data),

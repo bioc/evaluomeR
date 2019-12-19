@@ -402,6 +402,136 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
 
 }
 
+
+#' @title Comparison between two clusterings as plot.
+#' plotMetricsClusterComparison
+#' @aliases plotMetricsClusterComparison
+#' @description
+#' It plots a clustering comparison between two different
+#' k-cluster vectors for a set of metrics.
+#'
+#' @inheritParams stability
+#' @param k.vector1 Vector of positive integers representing \code{k} clusters.
+#' The \code{k} values must be contained in [2,15] range.
+#' @param k.vector2 Vector of positive integers representing \code{k} clusters.
+#' The \code{k} values must be contained in [2,15] range.
+#'
+#' @return Nothing.
+#'
+#' @examples
+#' # Using example data from our package
+#' data("rnaMetrics")
+#' stabilityData <- stabilityRange(data=rnaMetrics, k.range=c(2,4), bs=20, getImages = FALSE)
+#' qualityData <- qualityRange(data=rnaMetrics, k.range=c(2,4), getImages = FALSE)
+#' kOptTable = getOptimalKValue(stabilityData, qualityData)
+#'
+#'
+plotMetricsClusterComparison <- function(data, k.vector1, k.vector2, seed=NULL) {
+  if (is.null(seed)) {
+    seed = pkg.env$seed
+  }
+  if (identical(k.vector1, k.vector2)) {
+    stop("k.vector1 and k.vector2 are identical")
+  }
+
+  data <- as.data.frame(SummarizedExperiment::assay(data))
+
+  numMetrics = length(colnames(data))-1
+  if (numMetrics != length(k.vector1) || numMetrics != length(k.vector2)
+      || length(k.vector1) != length(k.vector2)) {
+    stop("Input parameters have different lengths")
+  }
+  for (i in 1:length(k.vector1)) {
+    checkKValue(k.vector1[i])
+    checkKValue(k.vector2[i])
+  }
+
+  data.metrics=NULL; names.metr=NULL; names.index=NULL;
+  k.cl=NULL; k.min=NULL; k.max=NULL;
+  data.metrics=NULL; datos.csv=NULL; datos.raw=NULL;
+  ranges=NULL; mins=NULL; data.l=NULL; data.ms=NULL; k.sig=NULL; k.op.sig=NULL;
+
+  datos.csv = data
+  data.metrics <- datos.csv[,-1]
+  names.metr <- colnames(datos.csv[,-1])  #nombres de metricas
+  names.ont <- datos.csv[,1]
+
+  ranges <- apply(data.metrics, 2, sample.range)
+  mins <- apply(data.metrics, 2, sample.min)
+  data.l <- sweep(data.metrics, 2, mins, FUN="-")
+  data.ms <- sweep(data.l, 2, ranges, FUN="/")
+
+  kcolors=c("black","red","blue","green","magenta","pink","yellow","orange","brown","cyan","gray","darkgreen")
+
+  par(mar=c(4,6,3,3))
+  plot(0,0, xlim=range(data.ms), ylim=c(0,length(names.metr)+1),
+       lwd=NULL, xlab="", ylab="", xaxt="n", yaxt="n", type="n")
+  axis(side=2, at = seq(1,length(names.metr)), labels=names.metr, las=2, cex.axis=.7)
+  title(xlab=paste("Scaled raw scores", sep=""), line=1)
+  title(ylab="Metrics", line=5)
+
+  for (i.metr in 1:length(names.metr)) { # i.metr= n de metrica #ejemplo
+    #  i.metr=1
+
+    i=NULL; clusterk5=NULL; clusterkopt=NULL;
+    k.cl=NULL; k.op=NULL; data.plot=NULL;
+
+    i=i.metr
+
+    #kmeans with k.cl classes
+    k.cl=k.vector2[i]
+    set.seed(seed)
+    clusterk5=kmeans(data.ms[,i], centers=k.cl, iter.max = 100)
+    ##
+    clusterk5$means=by(data.ms[,i],clusterk5$cluster,mean) #calcula las k medias (centroides)
+    for (i.5 in 1:length(clusterk5$means)) {
+      clusterk5$partition[which(clusterk5$cluster==i.5)]=clusterk5$centers[i.5]
+      #asigna valor centroide a todo miembro del cluster
+    }
+    #Ordenacion de la particion segun el sentido de la metrica (directa/inversa)
+    clusterk5$ordered=ordered(clusterk5$partition,labels=seq(1,length(clusterk5$centers)))
+    clusterk5$ordered.inv=ordered(clusterk5$partition,labels=seq(length(clusterk5$centers),1))
+    clusterk5$partition=clusterk5$ordered
+    clusterk5$means=sort(clusterk5$means,decreasing=FALSE)
+
+    #kmeans with k.op classes
+    k.op=k.vector1[i]
+    set.seed(seed)
+    clusterkopt=kmeans(data.ms[,i], centers=k.op, iter.max = 100)
+
+    clusterkopt$means=by(data.ms[,i],clusterkopt$cluster,mean) #calcula las k medias (centroides)
+    for (i.opt in 1:length(clusterkopt$means)) {
+      clusterkopt$partition[which(clusterkopt$cluster==i.opt)]=clusterkopt$centers[i.opt]
+      #asigna valor centroide a todo el cluster
+    }
+
+    clusterkopt$ordered=ordered(clusterkopt$partition,labels=seq(1,length(clusterkopt$centers)))
+    clusterkopt$ordered.inv=ordered(clusterkopt$partition,labels=seq(length(clusterkopt$centers),1))
+    clusterkopt$partition=clusterkopt$ordered
+    clusterkopt$means=sort(clusterkopt$means,decreasing=FALSE)
+
+    data.plot=data.frame(data.ms[,i],clusterk5$partition,clusterkopt$partition)
+    colnames(data.plot)=c(names.metr[i],"k=5","k_op")
+    rownames(data.plot)=names.ont
+
+    xi=data.plot[[1]]
+    yi=rep(i.metr,length(xi))
+    ci=data.plot[[2]]
+    ci=levels(ci)[ci]
+    points(xi,yi,type="p", col=kcolors[as.numeric(ci)],lty=1, lwd=1)
+
+    cj=data.plot[[3]]
+    for (ellip.j in unique(cj)) {
+      xj=mean(range(xi[which(cj==ellip.j)])) #clusterk5$means[ellip.j]
+      yj=rep(i.metr,length(xj))
+      aj=diff(range(xi[which(cj==ellip.j)]))/2
+      draw.ellipse(x=xj, y=yj, a=aj, b=0.3, nv=100,
+                   border=kcolors[as.numeric(ellip.j)], lty=1, lwd=2)
+    }
+
+  } #end for i.metr
+}
+
 checkStabilityQualityData <- function(stabData, qualData) {
   stabDf = assay(stabData) # Getting first assay, which is 'stabData$stability_mean'
   lengthStabDf = length(colnames(stabDf[,-1]))
@@ -514,3 +644,6 @@ standardizeStabilityData <- function(stabData, k.range=NULL) {
   stabDf <- stabDf[ order(row.names(stabDf)), ]
   return(stabDf)
 }
+
+
+
