@@ -302,7 +302,7 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
   stabDf = standardizeStabilityData(stabData, k.range)
   qualDf = standardizeQualityData(qualData, k.range)
 
-  metrics = rownames(stabDf)
+  metrics = as.character(as.data.frame(assay(stabData))$Metric)
   STABLE_CLASS = 0.75
 
   outputTable = as.data.frame(metrics)
@@ -437,6 +437,15 @@ plotMetricsClusterComparison <- function(data, k.vector1, k.vector2, seed=NULL) 
   data <- as.data.frame(SummarizedExperiment::assay(data))
 
   numMetrics = length(colnames(data))-1
+
+  if (length(k.vector1) == 1) {
+    k.vector1=rep(k.vector1, numMetrics)
+  }
+
+  if (length(k.vector2) == 1) {
+    k.vector2=rep(k.vector2, numMetrics)
+  }
+
   if (numMetrics != length(k.vector1) || numMetrics != length(k.vector2)
       || length(k.vector1) != length(k.vector2)) {
     stop("Input parameters have different lengths")
@@ -534,9 +543,9 @@ plotMetricsClusterComparison <- function(data, k.vector1, k.vector2, seed=NULL) 
 
 checkStabilityQualityData <- function(stabData, qualData) {
   stabDf = assay(stabData) # Getting first assay, which is 'stabData$stability_mean'
-  lengthStabDf = length(colnames(stabDf[,-1]))
-  stabRangeStart = gsub("^.*_.*_.*_","", colnames(stabDf[,-1])[1]) # Mean_stability_k_2 -> 2
-  stabRangeEnd = gsub("^.*_.*_.*_","", colnames(stabDf[,-1])[lengthStabDf])
+  lengthStabDf = length(colnames(stabDf)[-1])
+  stabRangeStart = gsub("^.*_.*_.*_","", colnames(stabDf)[-1][1]) # Mean_stability_k_2 -> 2
+  stabRangeEnd = gsub("^.*_.*_.*_","", colnames(stabDf)[-1][lengthStabDf])
   lengthQual = length(qualData)
   namesQual = names(qualData)
   qualRangeStart = getFormattedK(namesQual[1]) # k_2 -> 2
@@ -572,7 +581,7 @@ standardizeQualityData <- function(qualData, k.range=NULL) {
   for (i in seq(qualRangeStart, qualRangeEnd, 1)) {
     curQual = as.data.frame(assay(getDataQualityRange(qualData, i)))
     if (i == qualRangeStart) {
-      Metric = as.character(levels(curQual$Metric))
+      Metric = as.character(curQual$Metric)
     }
     kValues[[i]] = as.numeric(as.character(curQual$Avg_Silhouette_Width))
   }
