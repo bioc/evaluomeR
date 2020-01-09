@@ -8,7 +8,7 @@ getOptimalKValue}
 getOptimalKValue(stabData, qualData, k.range = NULL)
 }
 \arguments{
-\item{stabData}{An output \code{\link{SummarizedExperiment}} from
+\item{stabData}{An output \code{\link{ExperimentList}} from
 a \code{\link{stabilityRange}} execution.}
 
 \item{qualData}{An output \code{\link{SummarizedExperiment}} from
@@ -30,5 +30,6 @@ data("rnaMetrics")
 stabilityData <- stabilityRange(data=rnaMetrics, k.range=c(2,4), bs=20, getImages = FALSE)
 qualityData <- qualityRange(data=rnaMetrics, k.range=c(2,4), getImages = FALSE)
 kOptTable = getOptimalKValue(stabilityData, qualityData)
+
 
 }

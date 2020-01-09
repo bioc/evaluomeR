@@ -131,8 +131,82 @@ qualityRange <- function(data, k.range=c(3,5), getImages=TRUE, seed=NULL) {
   return(seList)
 }
 
-runQualityIndicesSilhouette <- function(data, k.min, k.max, bs, seed) {
+#' @title Goodness of classifications for a set of k clusters.
+#' @name qualitySet
+#' @aliases qualitySet
+#' @description
+#' The goodness of the classifications are assessed by validating the clusters
+#' generated for a range of k values. For this purpose, we use the Silhouette width as validity index.
+#' This index computes and compares the quality of the clustering outputs found
+#' by the different metrics, thus enabling to measure the goodness of the
+#' classification for both instances and metrics. More precisely, this measurement
+#' provides an assessment of how similar an instance is to other instances from
+#' the same cluster and dissimilar to the rest of clusters. The average on all
+#' the instances quantifies how the instances appropriately are clustered. Kaufman
+#' and Rousseeuw suggested the interpretation of the global Silhouette width score
+#' as the effectiveness of the clustering structure. The values are in the
+#' range [0,1], having the following meaning:
+#'
+#' \itemize{
+#' \item There is no substantial clustering structure: [-1, 0.25].
+#' \item The clustering structure is weak and could be artificial: ]0.25, 0.50].
+#' \item There is a reasonable clustering structure: ]0.50, 0.70].
+#' \item A strong clustering structure has been found: ]0.70, 1].
+#' }
+#'
+#' @inheritParams stability
+#' @param k.set A list of integer values of \code{k}, as in c(2,4,8).
+#' The values must be contained in [2,15] range.
+#'
+#' @return A list of \code{\link{SummarizedExperiment}} containing the silhouette width measurements and
+#' cluster sizes from \code{k.set}.
+#'
+#' @examples
+#' # Using example data from our package
+#' data("rnaMetrics")
+#' # Without plotting
+#' dataFrameList = qualitySet(rnaMetrics, k.set=c(2,3), getImages = FALSE)
+#'
+#' @references
+#' \insertRef{kaufman2009finding}{evaluomeR}
+#'
+qualitySet <- function(data, k.set=c(2,4), getImages=TRUE, seed=NULL) {
 
+  k.set.length = length(k.set)
+  if (k.set.length == 0) {
+    stop("k.set list is empty")
+  } else if (k.set.length == 1) {
+    stop("k.set list contains only one element. For one K analysis use 'stability' method")
+  }
+  k.set = sort(k.set)
+  for (k in k.set) {
+    checkKValue(k)
+  }
+
+  data <- as.data.frame(assay(data))
+
+  suppressWarnings(
+    runQualityIndicesSilhouette(data, bs = 1, seed=seed, k.set=k.set))
+  silhouetteData =  suppressWarnings(
+    runSilhouetteTableRange(data, k.set=k.set))
+
+  if (getImages == TRUE) {
+    suppressWarnings(
+      runQualityIndicesSilhouetteK_IMG(k.set=k.set))
+    suppressWarnings(
+      runQualityIndicesSilhouetteMetric_IMG(k.set=k.set))
+  }
+  seList <- createSEList(silhouetteData)
+  return(seList)
+}
+
+runQualityIndicesSilhouette <- function(data, k.min=NULL, k.max=NULL, bs, seed, k.set=NULL) {
+  if (is.null(seed)) {
+    seed = pkg.env$seed
+  }
+  if (is.null(k.min) && is.null(k.max) && is.null(k.set)) {
+    stop("runQualityIndicesSilhouette: All k parameters are null!")
+  }
   datos.bruto=data
   names.metr=names(datos.bruto)[-c(1)]
   pkg.env$names.metr = names.metr
@@ -150,11 +224,23 @@ runQualityIndicesSilhouette <- function(data, k.min, k.max, bs, seed) {
   i.min=k.min
   i.max=k.max
 
+  k.range = NULL
+  k.range.length = NULL
+  if (!is.null(k.set)) {
+    k.range = k.set
+    k.range.length = length(k.set)
+    nrow = max(k.set)
+  } else {
+    k.range = i.min:i.max
+    k.range.length = length(i.min:i.max)+1
+    nrow = i.max
+  }
+
   for (i.metr in 1:length(names.metr)) {
-    cat("Processing metric: ", names.metr[i.metr],"(", i.metr,")\n")
-    m.global[[i.metr]]=matrix(data=NA, nrow=i.max, ncol=length(i.min:i.max))
-    for (j.k in i.min:i.max) {
-      cat("\tCalculation of k = ", j.k,"\n")
+    message("Processing metric: ", names.metr[i.metr],"(", i.metr,")")
+    m.global[[i.metr]]=matrix(data=NA, nrow=nrow, ncol=k.range.length)
+    for (j.k in k.range) {
+      message("\tCalculation of k = ", j.k,"")
       e.res=NULL
       e.res.or=NULL
       contador=contador+1
@@ -198,8 +284,8 @@ runQualityIndicesSilhouette <- function(data, k.min, k.max, bs, seed) {
       }
     }
   }
-  for (j.k in i.min:i.max) {
-    e.global[[j.k]]=matrix(data=NA, nrow=length(names.metr), ncol=length(i.min:i.max))
+  for (j.k in k.range) {
+    e.global[[j.k]]=matrix(data=NA, nrow=length(names.metr), ncol=k.range.length)
     for (i.metr in 1:length(names.metr)) {
       e.global[[j.k]][i.metr,]=m.global[[i.metr]][j.k,]
     }
@@ -211,8 +297,10 @@ runQualityIndicesSilhouette <- function(data, k.min, k.max, bs, seed) {
 }
 
 # Silhouette width per k (x values = metrics)
-runQualityIndicesSilhouetteK_IMG <- function(k.min, k.max) {
-
+runQualityIndicesSilhouetteK_IMG <- function(k.min=NULL, k.max=NULL, k.set=NULL) {
+  if (is.null(k.min) && is.null(k.max) && is.null(k.set)) {
+    stop("runQualityIndicesSilhouetteK_IMG: All k parameters are null!")
+  }
   ancho=6
   alto=4
   escala=0.75
@@ -240,9 +328,18 @@ runQualityIndicesSilhouetteK_IMG <- function(k.min, k.max) {
 
   i.min=k.min
   i.max=k.max
+  k.range = NULL
+  k.range.length = NULL
+  if (!is.null(k.set)) {
+    k.range = k.set
+    k.range.length = length(k.set)
+  } else {
+    k.range = i.min:i.max
+    k.range.length = length(i.min:i.max)+1
+  }
   margins <- par(mar=c(5,5,3,3))
   on.exit(par(margins))
-  stype <- c(1:length(c(i.min:i.max)))
+  stype <- c(1:k.range.length)
   metrics_length = length(names.metr)
   num_metrics_plot = 19
   num_iterations = round(metrics_length/num_metrics_plot)
@@ -258,8 +355,14 @@ runQualityIndicesSilhouetteK_IMG <- function(k.min, k.max) {
       rangeEnd = metrics_length
     }
     new_xnames = x.name[rangeStart:rangeEnd]
-    g.main=paste(" Qual. Indices of the metrics for k in [", i.min, ",", i.max, "]",sep="")
-    for (m.g in i.min:i.max) {
+    if (!is.null(k.set)) {
+      setAsStrList = paste(as.character(k.set),collapse=", ",sep="")
+      g.main=paste(" Qual. Indices of the metrics for k in {", setAsStrList, "}",sep="")
+    } else {
+      g.main=paste(" Qual. Indices of the metrics for k in [", i.min, ",", i.max, "]",sep="")
+    }
+
+    for (m.g in k.range) {
       c.max=dim(e.mat.global[[m.g]])[2]
       ymarcas=round(seq(0,1,length.out=5),2)
 
@@ -285,14 +388,24 @@ runQualityIndicesSilhouetteK_IMG <- function(k.min, k.max) {
     axis(1,at=1:length(new_xnames),labels=new_xnames,las=2,cex.axis=0.75)
     axis(2,las=3,cex.axis=0.85)
     legend("bottomright", legend=labels, inset=.01, lwd=1, lty=stype, col="black", cex=0.7, pch=stype)
-
+    text(0.76, 0.75, "Strong", cex=0.6, col = "black")
+    abline(h = 0.7, col="black", lwd=1, lty=1) # Strong clust. strct.: (0.70, 1
+    text(0.76, 0.55, "Reasn.", cex=0.6, col = "black")
+    abline(h = 0.5, col="black", lwd=1, lty=1) # Reasonable clust. strct.: (0.50, 0.70]
+    text(0.76, 0.3, "Weak", cex=0.6, col = "black")
+    abline(h = 0.25, col="black", lwd=1, lty=1) # Weak clust. strct.: (0.25, 0.50]
+    text(0.77, 0.05, "No.strct", cex=0.6, col = "black")
+    #abline(h = -1, col="black", lwd=1, lty=4) # No clust. strct.: [-1, 0.25]
     par(new=FALSE)
 
   }
 }
 
 # Silhouette width per metric (x values = k range)
-runQualityIndicesSilhouetteMetric_IMG <- function(k.min, k.max) {
+runQualityIndicesSilhouetteMetric_IMG <- function(k.min=NULL, k.max=NULL, k.set=NULL) {
+  if (is.null(k.min) && is.null(k.max) && is.null(k.set)) {
+    stop("runQualityIndicesSilhouetteMetric_IMG: All k parameters are null!")
+  }
 
   ancho=6
   alto=4
@@ -306,23 +419,37 @@ runQualityIndicesSilhouetteMetric_IMG <- function(k.min, k.max) {
   m.global = pkg.env$m.global
   m.mat.global=m.global
   names.index = pkg.env$names.index
-  i.min=1
-  i.max=k.max-(k.min-1)
   names.metr = pkg.env$names.metr
-  x=c(k.min:k.max)
-  x.label="K values"
-  x.name=as.character(c(k.min:k.max))
+
   y.label="Silhouette avg. width"
   #Pattern: QualityIndices__MetricX, ..., QualityIndices__MetricN
   figurename="QualityIndices_"
 
   i.min=k.min
   i.max=k.max
+
+  k.range = NULL
+  k.range.length = NULL
+
+  if (!is.null(k.set)) {
+    k.range = k.set
+    k.range.length = length(k.set)
+    x=k.set
+  } else {
+    k.range = i.min:i.max
+    k.range.length = length(i.min:i.max)+1
+  }
+
+  x=c(k.range)
+  x.name=as.character(k.range)
+  x.label="K values"
+
+
   margins <- par(mar=c(5,5,3,3))
   on.exit(par(margins))
   for (m.g in 1:length(names.metr)) {
     cur.k.width = m.mat.global[[m.g]][,1]
-    cur.k.width = cur.k.width[c(i.min:i.max)]
+    cur.k.width = cur.k.width[k.range]
     #cur.k.width = cur.k.width[!is.na(cur.k.width)]
     leg.g=NULL
     xmin=min(x)-0.25
@@ -339,8 +466,13 @@ runQualityIndicesSilhouetteMetric_IMG <- function(k.min, k.max) {
     t.linea=seq(1,c.max)
     t.color=rep("black",c.max)
 
-    g.main=paste(" Qual. Indices of '", names.metr[m.g], "' for k in [",
-                 k.min, ",", k.max,"]",sep="")
+    if (!is.null(k.set)) {
+      setAsStrList = paste(as.character(k.set),collapse=", ",sep="")
+      g.main=paste(" Qual. Indices of '", names.metr[m.g], "' for k in {", setAsStrList, "}",sep="")
+    } else {
+      g.main=paste(" Qual. Indices of '", names.metr[m.g], "' for k in [",
+                   i.min, ",", i.max,"]",sep="")
+    }
 
     y=cur.k.width
     y.name=names.index[1]
@@ -507,7 +639,10 @@ runSilhouetteTable <- function(data, k) {
   return(silhouetteDataFrame)
 }
 
-runSilhouetteTableRange <- function(data, k.min, k.max) {
+runSilhouetteTableRange <- function(data, k.min=NULL, k.max=NULL, k.set=NULL) {
+  if (is.null(k.min) && is.null(k.max) && is.null(k.set)) {
+    stop("runSilhouetteTableRange: All k parameters are null!")
+  }
 
   getHeader <- function(k) {
     silhouetteData$header <- list("Metric")
@@ -532,6 +667,16 @@ runSilhouetteTableRange <- function(data, k.min, k.max) {
   k.min = k.min
   k.max = k.max
 
+  k.range = NULL
+  k.range.length = NULL
+  if (!is.null(k.set)) {
+    k.range = k.set
+    k.range.length = length(k.set)
+  } else {
+    k.range = k.min:k.max
+    k.range.length = length(k.min:k.max)+1
+  }
+
   onto.matrix=matrix(data=NA, nrow=length(datos.bruto[,1]), ncol=(length(names.metr)+1))
   onto.matrix[,1]=as.character(datos.bruto[,1])
   colnames(onto.matrix)=c("Datasets",paste(names.metr,sep="."))
@@ -539,8 +684,8 @@ runSilhouetteTableRange <- function(data, k.min, k.max) {
   estableLength = length(estable)
   names.metrLength = length(names.metr)
   silhouetteData <- list()
-  silhouetteDataIndex <- vector(mode="integer", length=length(1:k.max))
-  for (k in k.min:k.max) {
+  silhouetteDataIndex <- vector(mode="integer", length=k.range.length)
+  for (k in k.range) {
     header <- getHeader(k = k)
     silhouetteData[[k]] <- data.frame(matrix(ncol = length(header), nrow = names.metrLength))
     colnames(silhouetteData[[k]]) = header
@@ -575,11 +720,11 @@ runSilhouetteTableRange <- function(data, k.min, k.max) {
   # Data cleaning
   ##
   # Matrix inserts NA by default, remove them before returning the data
-  for (k in k.min:k.max) {
+  for (k in k.range) {
     silhouetteData[[k]] <- na.omit(silhouetteData[[k]])
   }
-  names(silhouetteData) <- paste("k_", 1:k.max, sep = "")
   silhouetteData[sapply(silhouetteData, is.null)] <- NULL
+  names(silhouetteData) <- paste("k_", k.range, sep = "")
   return(silhouetteData)
 }
 

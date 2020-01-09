@@ -1,3 +1,16 @@
+Changes in version 1.2.41 (2019-01-07)
+  + Minor bug fix for R 4.0 devel.
+
+Changes in version 1.2.4 (2019-12-19)
+  + Adding 'plotMetricsClusterComparison' method.
+
+Changes in version 1.2.3 (2019-12-16)
+  + Refactoring 'getOptimalKValue' method
+  + Adding stabilitySet and qualitySet
+
+Changes in version 1.2.2 (2019-11-12)
+  + Added new methods: Dependency with FPC added. Stability/stabilityRange also outputs cluster information like centers.
+
 Changes in version 1.2.0 (2019-11-12)
   + Added new methods: plotMetricsMinMax, plotMetricsBoxplot, plotMetricsCluster, plotMetricsCluster and plotMetricsViolin
 

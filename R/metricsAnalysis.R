@@ -260,7 +260,7 @@ getFormattedK <- function(k) {
 #' @description
 #' This method finds the optimal value of K per each metric.
 #'
-#' @param stabData An output \code{\link{SummarizedExperiment}} from
+#' @param stabData An output \code{\link{ExperimentList}} from
 #' a \code{\link{stabilityRange}} execution.
 #'
 #' @param qualData An output \code{\link{SummarizedExperiment}} from
@@ -278,6 +278,7 @@ getFormattedK <- function(k) {
 #' stabilityData <- stabilityRange(data=rnaMetrics, k.range=c(2,4), bs=20, getImages = FALSE)
 #' qualityData <- qualityRange(data=rnaMetrics, k.range=c(2,4), getImages = FALSE)
 #' kOptTable = getOptimalKValue(stabilityData, qualityData)
+#'
 #'
 getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
   checkStabilityQualityData(stabData, qualData)
@@ -301,7 +302,7 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
   stabDf = standardizeStabilityData(stabData, k.range)
   qualDf = standardizeQualityData(qualData, k.range)
 
-  metrics = rownames(stabDf)
+  metrics = as.character(as.data.frame(assay(stabData))$Metric)
   STABLE_CLASS = 0.75
 
   outputTable = as.data.frame(metrics)
@@ -317,12 +318,12 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
 
   for (metric in metrics) {
     cat("Processing metric: ", metric, "\n")
-    stabMaxK = colnames(stabDf[metric, ])[apply(stabDf[metric, ],1,which.max)] # k1
+    stabMaxK = colnames(stabDf[metric, ])[apply(stabDf[metric, ],1,which.max)] # ks
     stabMaxKFormatted = getFormattedK(stabMaxK)
     stabMaxVal = stabDf[metric, stabMaxK]
-    qualMaxK = colnames(qualDf[metric, ])[apply(qualDf[metric, ],1,which.max)] # k2
-    qualMaxVal = qualDf[metric, qualMaxK]
+    qualMaxK = colnames(qualDf[metric, ])[apply(qualDf[metric, ],1,which.max)] # kg
     qualMaxKFormatted = getFormattedK(qualMaxK)
+    qualMaxVal = qualDf[metric, qualMaxK]
     ## Info for output table
     stabMaxKs = append(stabMaxKs, stabMaxKFormatted)
     stabMaxKsStability = append(stabMaxKsStability, stabDf[metric, stabMaxK]);
@@ -331,53 +332,59 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
     qualMaxKs = append(qualMaxKs, qualMaxKFormatted)
     qualMaxKsStability = append(qualMaxKsStability, stabDf[metric, qualMaxK]);
     qualMaxKsQuality = append(qualMaxKsQuality, qualDf[metric, qualMaxK]);
-    ##
-    # CASE 1
-    if (length(stabMaxK) >= 1 && length(qualMaxK) >= 1 && identical(stabMaxK, qualMaxK)) {
+
+    # CASE 1: ks == kg
+    if (identical(stabMaxK, qualMaxK)) {
       k = stabMaxKFormatted
       cat("\tMaximum stability and quality values matches the same K value: '", k ,"'\n")
       optimalKs = append(optimalKs, k)
-      # CASE 2
-    } else if ((stabMaxVal >= STABLE_CLASS && stabDf[metric, qualMaxK] >= STABLE_CLASS) ||
-               (stabMaxVal < STABLE_CLASS && stabDf[metric, qualMaxK] < STABLE_CLASS)) {
-      if (stabMaxVal >= STABLE_CLASS && stabDf[metric, qualMaxK] >= STABLE_CLASS) {
+    } else {
+      # CASE 2: ks != kg
+      if (stabMaxVal > STABLE_CLASS && stabDf[metric, qualMaxK] > STABLE_CLASS) {
+        # Both stables
         cat("\tBoth Ks have a stable classification: '",
             stabMaxKFormatted, "', '", qualMaxKFormatted ,"'\n")
-      } else {
-        cat("\tBoth Ks does not have a stable classification: '",
-            stabMaxKFormatted, "', '", qualMaxKFormatted ,"'\n")
-      }
-      k = getLargestSilWidth(qualDf, metric, stabMaxK, qualMaxK)
-      cat("\tUsing '", k, "' since it provides higher silhouette width\n")
-      optimalKs = append(optimalKs, k)
-      # CASE 3
-    } else if (stabMaxVal >= STABLE_CLASS && stabDf[metric, qualMaxK] < STABLE_CLASS) {
-      cat("\tStability k '", stabMaxKFormatted, "' is stable but quality k '",
-          qualMaxKFormatted,"' is not\n")
-      kSil = qualDf[metric, stabMaxK]
-      if (isReasonable(kSil)) {
-        cat("\tUsing ", stabMaxKFormatted, " since its silhouette width is at least reasonable\n")
-        optimalKs = append(optimalKs, stabMaxKFormatted)
-      } else {
-        k = getLargestSilWidth(qualDf, metric, stabMaxK, qualMaxK)
-        cat("\tUsing '", k, "' since it provides higher silhouette width\n")
+        k = qualMaxKFormatted
         optimalKs = append(optimalKs, k)
-      }
-      # CASE 4
-    } else if (stabMaxVal < STABLE_CLASS && stabDf[metric, qualMaxK] >= STABLE_CLASS) {
-      cat("\t Quality k '", qualMaxKFormatted, "' is stable but stability k '",
-          stabMaxKFormatted,"' is not\n")
-      kSil = qualDf[metric, qualMaxK]
-      if (isReasonable(kSil)) {
-        cat("\tUsing ", qualMaxKFormatted, " since its silhouette width is at least reasonable\n")
-        optimalKs = append(optimalKs, stabMaxKFormatted)
-      } else {
-        k = getLargestSilWidth(qualDf, metric, stabMaxK, qualMaxK)
         cat("\tUsing '", k, "' since it provides higher silhouette width\n")
-        optimalKs = append(optimalKs, k)
+      } else {
+        if (stabMaxVal <= STABLE_CLASS && stabDf[metric, qualMaxK] <= STABLE_CLASS) {
+          # Both not stables: S_ks <= 0.75 && S_kg <= 0.75
+          cat("\tBoth Ks do not have a stable classification: '",
+              stabMaxKFormatted, "', '", qualMaxKFormatted ,"'\n")
+          k = qualMaxKFormatted
+          optimalKs = append(optimalKs, k)
+          cat("\tUsing '", k, "' since it provides higher silhouette width\n")
+        } else {
+          # S_ks > 0.75 && Sil_ks > 0.5 && S_kg <= 0.75
+          if ((stabMaxVal > STABLE_CLASS) && (qualDf[metric, stabMaxK] > 0.5)
+              && (stabDf[metric, qualMaxK] <= STABLE_CLASS)) {
+            cat("\tStability k '", stabMaxKFormatted, "' is stable but quality k '",
+                qualMaxKFormatted,"' is not\n")
+            k = stabMaxKFormatted
+            optimalKs = append(optimalKs, k)
+            cat("\tUsing '", k, "' since it provides higher stability\n")
+          } else {
+            # CASE 3
+            if (stabMaxVal > STABLE_CLASS && qualDf[metric, stabMaxK] <= 0.5
+                && stabDf[metric, qualMaxK] <= STABLE_CLASS)  {
+              cat("\tStability k '", stabMaxKFormatted, "' is stable but its silhouette value is not reasonable\n")
+              if (qualMaxVal > 0.5) { # S_kg > 0.5
+                k = qualMaxKFormatted
+                optimalKs = append(optimalKs, k)
+                cat("\tUsing quality '", k, "' since its at least reasonable\n")
+              } else {# S_kg <= 0.5
+                k = stabMaxKFormatted
+                optimalKs = append(optimalKs, k)
+                cat("\tUsing stability '", k, "' since quality k is not reasonable\n")
+              }
+            } else { # This should not happen but it might come in handy to check errors
+              cat("\tUnknown case\n")
+              optimalKs = append(optimalKs, -1)
+            }
+          }
+        }
       }
-    } else { # This should not happen but it might come in handy to check errors
-      optimalKs = append(optimalKs, -1)
     }
   }
 
@@ -392,13 +399,153 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
   outputTable["Global_optimal_k"] = unlist(optimalKs)
 
   return(outputTable)
+
+}
+
+
+#' @title Comparison between two clusterings as plot.
+#' plotMetricsClusterComparison
+#' @aliases plotMetricsClusterComparison
+#' @description
+#' It plots a clustering comparison between two different
+#' k-cluster vectors for a set of metrics.
+#'
+#' @inheritParams stability
+#' @param k.vector1 Vector of positive integers representing \code{k} clusters.
+#' The \code{k} values must be contained in [2,15] range.
+#' @param k.vector2 Vector of positive integers representing \code{k} clusters.
+#' The \code{k} values must be contained in [2,15] range.
+#'
+#' @return Nothing.
+#'
+#' @examples
+#' # Using example data from our package
+#' data("rnaMetrics")
+#' stabilityData <- stabilityRange(data=rnaMetrics, k.range=c(2,4), bs=20, getImages = FALSE)
+#' qualityData <- qualityRange(data=rnaMetrics, k.range=c(2,4), getImages = FALSE)
+#' kOptTable = getOptimalKValue(stabilityData, qualityData)
+#'
+#'
+plotMetricsClusterComparison <- function(data, k.vector1, k.vector2, seed=NULL) {
+  if (is.null(seed)) {
+    seed = pkg.env$seed
+  }
+  if (identical(k.vector1, k.vector2)) {
+    stop("k.vector1 and k.vector2 are identical")
+  }
+
+  data <- as.data.frame(SummarizedExperiment::assay(data))
+
+  numMetrics = length(colnames(data))-1
+
+  if (length(k.vector1) == 1) {
+    k.vector1=rep(k.vector1, numMetrics)
+  }
+
+  if (length(k.vector2) == 1) {
+    k.vector2=rep(k.vector2, numMetrics)
+  }
+
+  if (numMetrics != length(k.vector1) || numMetrics != length(k.vector2)
+      || length(k.vector1) != length(k.vector2)) {
+    stop("Input parameters have different lengths")
+  }
+  for (i in 1:length(k.vector1)) {
+    checkKValue(k.vector1[i])
+    checkKValue(k.vector2[i])
+  }
+
+  data.metrics=NULL; names.metr=NULL; names.index=NULL;
+  k.cl=NULL; k.min=NULL; k.max=NULL;
+  data.metrics=NULL; datos.csv=NULL; datos.raw=NULL;
+  ranges=NULL; mins=NULL; data.l=NULL; data.ms=NULL; k.sig=NULL; k.op.sig=NULL;
+
+  datos.csv = data
+  data.metrics <- datos.csv[,-1]
+  names.metr <- colnames(datos.csv[,-1])  #nombres de metricas
+  names.ont <- datos.csv[,1]
+
+  ranges <- apply(data.metrics, 2, sample.range)
+  mins <- apply(data.metrics, 2, sample.min)
+  data.l <- sweep(data.metrics, 2, mins, FUN="-")
+  data.ms <- sweep(data.l, 2, ranges, FUN="/")
+
+  kcolors=c("black","red","blue","green","magenta","pink","yellow","orange","brown","cyan","gray","darkgreen")
+
+  par(mar=c(4,6,3,3))
+  plot(0,0, xlim=range(data.ms), ylim=c(0,length(names.metr)+1),
+       lwd=NULL, xlab="", ylab="", xaxt="n", yaxt="n", type="n")
+  axis(side=2, at = seq(1,length(names.metr)), labels=names.metr, las=2, cex.axis=.7)
+  title(xlab=paste("Scaled raw scores", sep=""), line=1)
+  title(ylab="Metrics", line=5)
+
+  for (i.metr in 1:length(names.metr)) { # i.metr= n de metrica #ejemplo
+    #  i.metr=1
+
+    i=NULL; clusterk5=NULL; clusterkopt=NULL;
+    k.cl=NULL; k.op=NULL; data.plot=NULL;
+
+    i=i.metr
+
+    #kmeans with k.cl classes
+    k.cl=k.vector2[i]
+    set.seed(seed)
+    clusterk5=kmeans(data.ms[,i], centers=k.cl, iter.max = 100)
+    ##
+    clusterk5$means=by(data.ms[,i],clusterk5$cluster,mean) #calcula las k medias (centroides)
+    for (i.5 in 1:length(clusterk5$means)) {
+      clusterk5$partition[which(clusterk5$cluster==i.5)]=clusterk5$centers[i.5]
+      #asigna valor centroide a todo miembro del cluster
+    }
+    #Ordenacion de la particion segun el sentido de la metrica (directa/inversa)
+    clusterk5$ordered=ordered(clusterk5$partition,labels=seq(1,length(clusterk5$centers)))
+    clusterk5$ordered.inv=ordered(clusterk5$partition,labels=seq(length(clusterk5$centers),1))
+    clusterk5$partition=clusterk5$ordered
+    clusterk5$means=sort(clusterk5$means,decreasing=FALSE)
+
+    #kmeans with k.op classes
+    k.op=k.vector1[i]
+    set.seed(seed)
+    clusterkopt=kmeans(data.ms[,i], centers=k.op, iter.max = 100)
+
+    clusterkopt$means=by(data.ms[,i],clusterkopt$cluster,mean) #calcula las k medias (centroides)
+    for (i.opt in 1:length(clusterkopt$means)) {
+      clusterkopt$partition[which(clusterkopt$cluster==i.opt)]=clusterkopt$centers[i.opt]
+      #asigna valor centroide a todo el cluster
+    }
+
+    clusterkopt$ordered=ordered(clusterkopt$partition,labels=seq(1,length(clusterkopt$centers)))
+    clusterkopt$ordered.inv=ordered(clusterkopt$partition,labels=seq(length(clusterkopt$centers),1))
+    clusterkopt$partition=clusterkopt$ordered
+    clusterkopt$means=sort(clusterkopt$means,decreasing=FALSE)
+
+    data.plot=data.frame(data.ms[,i],clusterk5$partition,clusterkopt$partition)
+    colnames(data.plot)=c(names.metr[i],"k=5","k_op")
+    rownames(data.plot)=names.ont
+
+    xi=data.plot[[1]]
+    yi=rep(i.metr,length(xi))
+    ci=data.plot[[2]]
+    ci=levels(ci)[ci]
+    points(xi,yi,type="p", col=kcolors[as.numeric(ci)],lty=1, lwd=1)
+
+    cj=data.plot[[3]]
+    for (ellip.j in unique(cj)) {
+      xj=mean(range(xi[which(cj==ellip.j)])) #clusterk5$means[ellip.j]
+      yj=rep(i.metr,length(xj))
+      aj=diff(range(xi[which(cj==ellip.j)]))/2
+      draw.ellipse(x=xj, y=yj, a=aj, b=0.3, nv=100,
+                   border=kcolors[as.numeric(ellip.j)], lty=1, lwd=2)
+    }
+
+  } #end for i.metr
 }
 
 checkStabilityQualityData <- function(stabData, qualData) {
-  stabDf = assay(stabData)
-  lengthStabDf = length(colnames(stabDf[,-1]))
-  stabRangeStart = gsub("^.*_.*_.*_","", colnames(stabDf[,-1])[1]) # Mean_stability_k_2 -> 2
-  stabRangeEnd = gsub("^.*_.*_.*_","", colnames(stabDf[,-1])[lengthStabDf])
+  stabDf = assay(stabData) # Getting first assay, which is 'stabData$stability_mean'
+  lengthStabDf = length(colnames(stabDf)[-1])
+  stabRangeStart = gsub("^.*_.*_.*_","", colnames(stabDf)[-1][1]) # Mean_stability_k_2 -> 2
+  stabRangeEnd = gsub("^.*_.*_.*_","", colnames(stabDf)[-1][lengthStabDf])
   lengthQual = length(qualData)
   namesQual = names(qualData)
   qualRangeStart = getFormattedK(namesQual[1]) # k_2 -> 2
@@ -434,7 +581,7 @@ standardizeQualityData <- function(qualData, k.range=NULL) {
   for (i in seq(qualRangeStart, qualRangeEnd, 1)) {
     curQual = as.data.frame(assay(getDataQualityRange(qualData, i)))
     if (i == qualRangeStart) {
-      Metric = as.character(levels(curQual$Metric))
+      Metric = as.character(curQual$Metric)
     }
     kValues[[i]] = as.numeric(as.character(curQual$Avg_Silhouette_Width))
   }
@@ -471,7 +618,7 @@ standardizeQualityData <- function(qualData, k.range=NULL) {
 # standardized dataframe to process.
 #
 standardizeStabilityData <- function(stabData, k.range=NULL) {
-  stabDf = as.data.frame(assay(stabData))
+  stabDf = as.data.frame(assay(stabData)) # Getting first assay, which is 'stabData$stability_mean'
   lengthColnames = length(colnames(stabDf))
   toRemove = list()
   for (i in seq(1, lengthColnames, 1)) {
@@ -506,3 +653,6 @@ standardizeStabilityData <- function(stabData, k.range=NULL) {
   stabDf <- stabDf[ order(row.names(stabDf)), ]
   return(stabDf)
 }
+
+
+

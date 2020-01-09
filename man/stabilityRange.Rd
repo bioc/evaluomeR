@@ -28,8 +28,8 @@ contained in [2,15] range.}
 \item{seed}{Positive integer. A seed for internal bootstrap.}
 }
 \value{
-A \code{\link{SummarizedExperiment}} containing the stability measurements and
-means for 1 to k clusters.
+A \code{\link{ExperimentList}} containing the stability and cluster measurements
+ for 2 to \code{k} clusters.
 }
 \description{
 This analysis permits to estimate whether the clustering is meaningfully
