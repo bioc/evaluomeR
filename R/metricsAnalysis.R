@@ -144,17 +144,21 @@ plotMetricsBoxplot <- function(data) {
 #' object as a boxplot.
 #'
 #' @inheritParams stability
+#' @param scale Boolean. If true input data is scaled. Default: FALSE.
 #'
-#' @return Nothing.
+#' @return An hclust object.
 #'
 #' @examples
 #' # Using example data from our package
 #' data("ontMetrics")
-#' plotMetricsCluster(ontMetrics)
+#' plotMetricsCluster(ontMetrics, scale=TRUE)
 #'
-plotMetricsCluster <- function(data) {
+plotMetricsCluster <- function(data, scale=FALSE) {
   data <- as.data.frame(assay(data))
   data.metrics = data[,-1] # Removing Description column
+  if (isTRUE(scale)) {
+    data.metrics = base::scale(data.metrics)
+  }
   d <- dist(t(data.metrics), method = "euclidean") # distance matrix
   fit <- hclust(d, method="ward.D2")
   theme_set(theme_bw())
@@ -164,6 +168,7 @@ plotMetricsCluster <- function(data) {
     ) +
     labs(title="Metrics dendrogram")
   print(p)
+  return(fit)
 }
 
 #' @title Metric values as violin plot.
@@ -306,7 +311,7 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
   STABLE_CLASS = 0.75
 
   outputTable = as.data.frame(metrics)
-  rownames(outputTable) = metrics
+  #rownames(outputTable) = metrics
   outputTable = outputTable[, -1]
   optimalKs = list()
   stabMaxKs = list() # List of maximum K for the stability of metric X
@@ -317,7 +322,7 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
   qualMaxKsQuality = list() # Quality of the current K in qualMaxKs
 
   for (metric in metrics) {
-    cat("Processing metric: ", metric, "\n")
+    message("Processing metric: ", metric, "\n")
     stabMaxK = colnames(stabDf[metric, ])[apply(stabDf[metric, ],1,which.max)] # ks
     stabMaxKFormatted = getFormattedK(stabMaxK)
     stabMaxVal = stabDf[metric, stabMaxK]
@@ -336,50 +341,50 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
     # CASE 1: ks == kg
     if (identical(stabMaxK, qualMaxK)) {
       k = stabMaxKFormatted
-      cat("\tMaximum stability and quality values matches the same K value: '", k ,"'\n")
+      message("\tMaximum stability and quality values matches the same K value: '", k ,"'\n")
       optimalKs = append(optimalKs, k)
     } else {
       # CASE 2: ks != kg
       if (stabMaxVal > STABLE_CLASS && stabDf[metric, qualMaxK] > STABLE_CLASS) {
         # Both stables
-        cat("\tBoth Ks have a stable classification: '",
+        message("\tBoth Ks have a stable classification: '",
             stabMaxKFormatted, "', '", qualMaxKFormatted ,"'\n")
         k = qualMaxKFormatted
         optimalKs = append(optimalKs, k)
-        cat("\tUsing '", k, "' since it provides higher silhouette width\n")
+        message("\tUsing '", k, "' since it provides higher silhouette width\n")
       } else {
         if (stabMaxVal <= STABLE_CLASS && stabDf[metric, qualMaxK] <= STABLE_CLASS) {
           # Both not stables: S_ks <= 0.75 && S_kg <= 0.75
-          cat("\tBoth Ks do not have a stable classification: '",
+          message("\tBoth Ks do not have a stable classification: '",
               stabMaxKFormatted, "', '", qualMaxKFormatted ,"'\n")
           k = qualMaxKFormatted
           optimalKs = append(optimalKs, k)
-          cat("\tUsing '", k, "' since it provides higher silhouette width\n")
+          message("\tUsing '", k, "' since it provides higher silhouette width\n")
         } else {
           # S_ks > 0.75 && Sil_ks > 0.5 && S_kg <= 0.75
           if ((stabMaxVal > STABLE_CLASS) && (qualDf[metric, stabMaxK] > 0.5)
               && (stabDf[metric, qualMaxK] <= STABLE_CLASS)) {
-            cat("\tStability k '", stabMaxKFormatted, "' is stable but quality k '",
+            message("\tStability k '", stabMaxKFormatted, "' is stable but quality k '",
                 qualMaxKFormatted,"' is not\n")
             k = stabMaxKFormatted
             optimalKs = append(optimalKs, k)
-            cat("\tUsing '", k, "' since it provides higher stability\n")
+            message("\tUsing '", k, "' since it provides higher stability\n")
           } else {
             # CASE 3
             if (stabMaxVal > STABLE_CLASS && qualDf[metric, stabMaxK] <= 0.5
                 && stabDf[metric, qualMaxK] <= STABLE_CLASS)  {
-              cat("\tStability k '", stabMaxKFormatted, "' is stable but its silhouette value is not reasonable\n")
+              message("\tStability k '", stabMaxKFormatted, "' is stable but its silhouette value is not reasonable\n")
               if (qualMaxVal > 0.5) { # S_kg > 0.5
                 k = qualMaxKFormatted
                 optimalKs = append(optimalKs, k)
-                cat("\tUsing quality '", k, "' since its at least reasonable\n")
+                message("\tUsing quality '", k, "' since its at least reasonable\n")
               } else {# S_kg <= 0.5
                 k = stabMaxKFormatted
                 optimalKs = append(optimalKs, k)
-                cat("\tUsing stability '", k, "' since quality k is not reasonable\n")
+                message("\tUsing stability '", k, "' since quality k is not reasonable\n")
               }
             } else { # This should not happen but it might come in handy to check errors
-              cat("\tUnknown case\n")
+              message("\tUnknown case\n")
               optimalKs = append(optimalKs, -1)
             }
           }
@@ -388,6 +393,7 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
     }
   }
 
+  outputTable["Metric"] = metrics
   outputTable["Stability_max_k"] = unlist(stabMaxKs)
   outputTable["Stability_max_k_stab"] = unlist(stabMaxKsStability)
   outputTable["Stability_max_k_qual"] = unlist(stabMaxKsQuality)

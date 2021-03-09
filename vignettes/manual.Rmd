@@ -14,7 +14,7 @@ author:
 - name: "Jesualdo Tomás Fernández-Breis"
   affiliation: *dis
 package: evaluomeR
-date: "2021-01-15"
+date: "2020-04-13"
 bibliography: ../inst/REFERENCES.bib
 biblio-style: apsr
 link-citations: yes
@@ -175,7 +175,7 @@ instance, running a stability analysis for the metrics of `rnaMetrics` with a
 number of `100` bootstrap replicates with a k-means cluster whose `k` is 2
 (note that `k` must be inside [2,15] range):
 
-```{r stability-1, results='hide', echo=TRUE}
+```{r stability-1, results='hide', echo=TRUE, message=FALSE}
 stabilityData <- stability(rnaMetrics, k=2, bs = 100)
 ```
 
@@ -210,7 +210,7 @@ It performs a stability analysis for a range of `k` values (`k.range`).
 For instance, analyzing the stability of `rnaMetrics` in range [2,4], with
 `bs=100`:
 
-```{r stabilityRange-1, results='hide', echo=TRUE}
+```{r stabilityRange-1, results='hide', echo=TRUE, message=FALSE}
 stabilityRangeData = stabilityRange(rnaMetrics, k.range=c(2,4), bs = 100)
 ```
 
@@ -232,7 +232,7 @@ grouped for each metric (one plot per metric).
 For instance, running a quality analysis for the two metrics of `rnaMetrics`
 dataset, being `k=4`:
 
-```{r quality-1, results='hide', eval=TRUE, echo=TRUE}
+```{r quality-1, results='hide', eval=TRUE, echo=TRUE, message=FALSE}
 qualityData = quality(rnaMetrics, k = 4)
 ```
 
@@ -268,7 +268,7 @@ classifications of the metric for different values of the range.
 In the next example we will keep using the `rnaMetrics` dataset, and a
 `k.range` set to [4,6].
 
-```{r quality-range-1, results='hide', eval=TRUE, echo=TRUE}
+```{r quality-range-1, results='hide', eval=TRUE, echo=TRUE, message=FALSE}
 k.range = c(4,6)
 qualityRangeData = qualityRange(rnaMetrics, k.range)
 ```
@@ -343,7 +343,7 @@ The algorithm works as follows: The highest stability and the highest goodness a
    
 * If $k_1$ provides stable classifications, $k_2$ does not, and the width of the Silhouette of $k_1$ is less than reasonable, then we will select the value of $k$ with the largest Silhouette width.
 
-```{r getOptimalKValue, results='hide', eval=TRUE, echo=TRUE}
+```{r getOptimalKValue, results='hide', eval=TRUE, echo=TRUE, message=FALSE}
 stabilityData <- stabilityRange(data=ontMetrics, k.range=c(2,4), 
                                 bs=20, getImages = FALSE, seed=100)
 qualityData <- qualityRange(data=ontMetrics, k.range=c(2,4),
