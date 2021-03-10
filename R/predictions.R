@@ -3,7 +3,7 @@
 # Funcion que calcula las componentes principales a partir de la matriz de las metricas de OQuaRE pasado por parametro. Imprime un
 # vector que indica el Porcentaje de Varianza Explicado de cada una de las componentes y devuelve una matriz que representa
 # las nuevas variables.
-metrics_pca = function(data){
+metrics_pca <- function(data){
   # Calculamos las componentes principales
   pca_result = prcomp(data, scale = TRUE)
   pca_result$rotation
@@ -20,9 +20,18 @@ metrics_pca = function(data){
     PVE_accumulated = PVE_accumulated + PVE[count]
     aux = aux + PVE[count+1]
   }
-
   message(paste0(count, " PC used, ", round(PVE_accumulated,2)*100, "% explained"))
   return (data.frame(pca_result$x[,1:count]))
+}
+
+metrics_randomforest <- function(data) {
+  variables = randomForest(x=data)
+  variables_importancia = variables$importance
+  variables_importancia = as.data.frame(variables_importancia[order(variables_importancia, decreasing = TRUE),])
+  colnames(variables_importancia) = colnames(variables$importance)
+
+  most_important_metrics = head(rownames(variables_importancia), 7)
+  return (data[, most_important_metrics])
 }
 
 
@@ -119,6 +128,10 @@ getPrediction = function(data, model){
 #' computed with \code{\link{flexmix}} package.
 #'
 #' @inheritParams stability
+#' @param k.range Concatenation of two positive integers.
+#' The first value \code{k.range[1]} is considered as the lower bound of the range,
+#' whilst the second one, \code{k.range[2]}, as the higher. Both values must be
+#' contained in [2,15] range.
 #' @param nrep Positive integer. Number of random initializations used in adjusting the model.
 #' @param PCA Boolean. If true, a PCA is performed on the input dataframe before computing
 #' the predictions.
@@ -152,14 +165,16 @@ globalMetric = function(data, k.range=c(2,15), nrep=10, criterion=c("BIC", "AIC"
   }
 
   data = as.data.frame(SummarizedExperiment::assay(data))
+  rownames(data) = data[, 1]
+  data = data[, 2:ncol(data)]
 
   # Si los datos de entrada no son las componentes principales, las calculamos
-  if (PCA == FALSE){
+  if (PCA == TRUE){
     data = metrics_pca(data)
-
-  } else{
-    data = data.frame(data)
+  } else {
+    data = metrics_randomforest(data)
   }
+  print(data)
 
   criterion =  match.arg(criterion)
   # Calcular el modelo
@@ -179,6 +194,6 @@ globalMetric = function(data, k.range=c(2,15), nrep=10, criterion=c("BIC", "AIC"
       global_metric[i,2] = sum(weigths*as.numeric(predictions[i,-1]))
     }
   }
-  colnames(global_metric) = c("Metric", "Prediction")
+  colnames(global_metric) = c("Description", "Prediction")
   return (global_metric)
 }

@@ -16,6 +16,11 @@ metrics are measured.
 The other columns of the header contains the names of the metrics.
 The rows contains the measurements of the metrics for each instance in the dataset.}
 
+\item{k.range}{Concatenation of two positive integers.
+The first value \code{k.range[1]} is considered as the lower bound of the range,
+whilst the second one, \code{k.range[2]}, as the higher. Both values must be
+contained in [2,15] range.}
+
 \item{nrep}{Positive integer. Number of random initializations used in adjusting the model.}
 
 \item{criterion}{String. Critirion applied in order to select the best model. Possible values:
