@@ -4,7 +4,7 @@
 \alias{plotMetricsCluster}
 \title{Metric values clustering.}
 \usage{
-plotMetricsCluster(data)
+plotMetricsCluster(data, scale = FALSE)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -14,9 +14,11 @@ of the instance of the dataset (e.g., ontology, pathway, etc.) on which the
 metrics are measured.
 The other columns of the header contains the names of the metrics.
 The rows contains the measurements of the metrics for each instance in the dataset.}
+
+\item{scale}{Boolean. If true input data is scaled. Default: FALSE.}
 }
 \value{
-Nothing.
+An hclust object.
 }
 \description{
 It clusters the value of the metrics in a \code{\link{SummarizedExperiment}}
@@ -25,6 +27,6 @@ object as a boxplot.
 \examples{
 # Using example data from our package
 data("ontMetrics")
-plotMetricsCluster(ontMetrics)
+plotMetricsCluster(ontMetrics, scale=TRUE)
 
 }

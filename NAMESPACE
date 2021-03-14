@@ -1,15 +1,20 @@
+import("MASS", "class", "prabclus", "mclust")
+
 importFrom("Rdpack","reprompt")
 importFrom("corrplot","corrplot")
-importFrom("fpc","clusterboot")
-importFrom("fpc","kmeansCBI")
-importFrom("fpc","cluster.stats")
-importFrom("cluster","silhouette")
-importFrom("grDevices", "colorRampPalette")
-importFrom("grDevices", "dev.off")
+# importFrom("fpc","clusterboot")
+importFrom("fpc","cluster.stats","dbscan", "kmeansruns", "fixmahal", "fpclusters", "pamk", "mergenormals")
+# importFrom("fpc",""kmeansCBI"")
+# importFrom("fpc","claraCBI")
+# importFrom("fpc","hclustCBI")
+# importFrom("fpc","pamkCBI")
+importFrom("cluster", "silhouette", "pam", "clara")
+importFrom("grDevices", "dev.off", "colorRampPalette")
 importFrom("graphics", "axis", "legend", "mtext",
-           "par", "plot", "text", "abline",
+           "par", "plot", "text", "abline", "hist",
            "title", "points")
-importFrom("stats", "cor", "dist", "na.omit", "kmeans", "hclust")
+importFrom("stats", "cor", "dist", "na.omit", "kmeans", "hclust", "as.dist", "cmdscale", "cov", "cutree", "predict",
+                "quantile", "rbinom", "rnorm", "runif")
 importFrom("SummarizedExperiment", "assays")
 importFrom("SummarizedExperiment", "assay")
 importFrom("SummarizedExperiment", "SummarizedExperiment")
@@ -25,6 +30,7 @@ importFrom("ggplot2", "ggplot", "guides", "scale_y_continuous",
 
 importFrom("matrixStats", "colMaxs", "colMins", "colSds")
 importFrom("plotrix", "draw.ellipse")
+importFrom("utils", "data")
 
 export(stability)
 export(stabilityRange)
@@ -40,3 +46,5 @@ export(plotMetricsCluster)
 export(plotMetricsViolin)
 export(getOptimalKValue)
 export(plotMetricsClusterComparison)
+export(evaluomeRSupportedCBI)
+export(globalMetric)

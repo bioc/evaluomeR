@@ -4,8 +4,8 @@
 \alias{stabilitySet}
 \title{Stability index for a set of k clusters.}
 \usage{
-stabilitySet(data, k.set = c(2, 3), bs = 100, getImages = TRUE,
-  seed = NULL)
+stabilitySet(data, k.set = c(2, 3), bs = 100, cbi = "kmeans",
+  getImages = TRUE, seed = NULL)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -20,6 +20,11 @@ The rows contains the measurements of the metrics for each instance in the datas
 The values must be contained in [2,15] range.}
 
 \item{bs}{Positive integer. Bootstrap value to perform the resampling.}
+
+\item{cbi}{Clusterboot interface name (default: "kmeans"):
+"kmeans", "clara", "clara_pam", "hclust", "pamk", "pamk_pam", "pamk".
+Any CBI appended with '_pam' makes use of \code{\link{pam}}.
+The method used in 'hclust' CBI is "ward.D2".}
 
 \item{getImages}{Boolean. If true, a plot is displayed.}
 

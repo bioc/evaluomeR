@@ -1,3 +1,20 @@
+Changes in version 1.7.5 (2021-03-º1)
+  + Minor bug fix for Mac compilation.
+
+Changes in version 1.7.4 (2020-06-01)
+  + Added 'scale' parameter to plotMetricsCluster method.
+
+Changes in version 1.7.3 (2020-04-16)
+  + Clusterboot interfaces can be set through 'cbi' parameter to quality methods.
+    It takes one the following values: "kmeans", "clara", "clara_pam", "hclust", "pamk", "pamk_pam".
+
+Changes in version 1.7.2 (2020-04-14)
+  + Stability analysis and quality analysis will not stuck in bootstrap.
+
+Changes in version 1.7.1 (2020-04-13)
+  + Clusterboot interfaces can be set through 'cbi' parameter to stability methods.
+    It takes one the following values: "kmeans", "clara", "clara_pam", "hclust", "pamk", "pamk_pam".
+
 Changes in version 1.3.41 (2019-01-07)
   + Minor bug fix for R 4.0 devel.
 

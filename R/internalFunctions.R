@@ -37,7 +37,7 @@ jaccard.cluster <- function(clust1,clust2) {
 
 boot.cluster <- function(data, nk=5, B=10, seed=NULL, prnt=FALSE) {
   old.seed <- .Random.seed
-  on.exit( { .Random.seed <<- old.seed } )
+  on.exit( { .Random.seed <- old.seed } )
   if (!is.null(seed)) {
     #http://stackoverflow.com/questions/14324096/setting-seed-locally-not-globally-in-r?rq=1
     set.seed(as.integer(seed)) #seed
@@ -61,6 +61,11 @@ boot.cluster <- function(data, nk=5, B=10, seed=NULL, prnt=FALSE) {
       if (nk <= length(levels(as.factor(bs.data))))
         bscheck <- FALSE
     }
+    if (length(bs.data) <= nk) { # Not enough data for kmeans
+      message("\tWarning: Could not process data for k = ", nk)
+      return (NULL)
+    }
+
     bs.cluster <- kmeans(bs.data, centers=nk, iter.max=100)
     bs.cluster$partition <- bs.cluster$cluster
     bs.cluster$nk <- nk
@@ -103,5 +108,104 @@ getMeasureValue <- function(km5, measureName) {
   } else {
     stop("Unknown measure '", measureName, "'. Stopping.")
   }
+}
+######################################################
+
+######################################################
+#function
+#   clusterbootWrapper(data, B, bootmethod="boot",
+#                     clustermethod=kmeansCBI, krange, seed)
+#     Wrapper method for clusterboot functionality.
+
+clusterbootWrapper <- function(data, B, bootmethod="boot",
+                               cbi, krange, seed) {
+  cbiHelperResult = helperGetCBI(cbi, krange)
+
+  #cat ("Using: ", cbi, "\n")
+  #cat ("Type: ", typeof(cbiHelperResult[["method"]]), "\n")
+
+  mandatoryArgs = list(
+    "data"=data,
+    "B"=B,
+    "bootmethod"=bootmethod,
+    "seed"=seed,
+    "clustermethod"=cbiHelperResult[["method"]]
+  )
+
+  methodArgs = append(mandatoryArgs, cbiHelperResult[["args"]])
+
+  return (
+            #quiet(
+              do.call(
+                clusterboot,
+                methodArgs
+                #  )
+            )
+          )
+}
+######################################################
+
+######################################################
+#function
+#   clusteringWrapper(data, cbi, krange, seed)
+#     Wrapper method for clustering functionality.
+
+clusteringWrapper <- function(data, cbi, krange, seed) {
+  cbiHelperResult = helperGetCBI(cbi, krange)
+
+  old.seed <- .Random.seed
+  on.exit( { .Random.seed <<- old.seed } )
+
+  if (!is.null(seed)) set.seed(seed)
+
+
+  #cat ("Using: ", cbi, "\n")
+
+  mandatoryArgs = list(
+    "data"=data
+  )
+
+  methodArgs = append(mandatoryArgs, cbiHelperResult[["args"]])
+
+  # print(cbiHelperResult[["method"]])
+  # print(methodArgs)
+
+  return (
+    quiet(
+      do.call(
+        cbiHelperResult[["method"]],
+        methodArgs
+      )
+    )
+  )
+}
+######################################################
+
+######################################################
+#function
+#   checkIfCanCluster(data, k)
+#       It prevents clusterboot method from getting stuck by checking if
+#       there is enough data to perform a clustering.
+
+checkIfCanCluster <- function(data, ...) {
+  mc <- as.list(match.call(expand.dots = TRUE))
+  k = NULL
+  if ("krange" %in% names(mc)) {
+    k = mc[["krange"]]
+  } else if ("k" %in% names(mc) ) {
+    k = mc[["k"]]
+  } else {
+    stop(paste0("Unexpected error. Could not retrieve 'k' value from dot-dot-dot argument. ",
+                "Arguments were: ", names(mc)))
+  }
+
+  numUnique = length(unique(data))
+  #print(paste0("Division is:", numUnique/k))
+  #print(paste0("Return is: ", (numUnique/k) > 1))
+
+  if ((numUnique/k) <= 1) {
+    stop(paste0("Not enough data to cluster '", numUnique, "' unique values in '", k, "' clusters"))
+  }
+
 }
 ######################################################

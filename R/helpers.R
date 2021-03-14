@@ -47,6 +47,7 @@ pkg.env$estable = NULL
 pkg.env$names.index = NULL
 pkg.env$names.metr = NULL
 pkg.env$seed = 13606
+pkg.env$cbi = c("kmeans", "clara", "clara_pam", "hclust", "pamk", "pamk_pam") # Supported CBIs
 
 
 #####################
@@ -117,6 +118,8 @@ createSEList <- function(data) {
   for (i in 1:length) {
     cur.data <- data[[i]]
     dataMatrix <- as.matrix(cur.data)
+    #cat("DataMatrix '", names(data)[i], "'\n")
+    #print(dataMatrix)
     if (is.na(dataMatrix[1, "Metric"])) { # Metrics are NA? At least the first one
       dataMatrix[,1] <- cur.data$Metric
     }
@@ -127,4 +130,54 @@ createSEList <- function(data) {
   names(seList) <- names(data)
   expList <- ExperimentList(seList)
   return(expList)
+}
+
+## Returns a cluterboot interface (CBI) depending on the input string,
+## with its specific function parameters in an list as in:
+## list("method" = CBI Method, "args" = Lit of Specific arguments for this CBI)
+helperGetCBI <- function(cbi=pkg.env$cbi, krange) {
+  cbi <- match.arg(cbi)
+  switch(cbi,
+         kmeans={
+           args = list("krange" = krange)
+           return(list("method" = kmeansCBI, "args" = args))
+         },
+         clara={
+           args = list("k" = krange, "usepam"=FALSE)
+           return(list("method" = claraCBI, "args" = args))
+         },
+         clara_pam={
+           args = list("k" = krange, "usepam"=TRUE)
+           return(list("method" = claraCBI, "args" = args))
+         },
+         hclust={
+           args = list("k" = krange, "method"="ward.D2")
+           return(list("method" = hclustCBI, "args" = args))
+         },
+         pamk={
+           args = list("k" = krange, "usepam"=FALSE, criterion="asw")
+           return(list("method" = pamkCBI, "args" = args))
+         },
+         pamk_pam={
+           args = list("k" = krange, "usepam"=TRUE, criterion="asw")
+           return(list("method" = pamkCBI, "args" = args))
+         },
+         {
+           error=paste("Input CBI '", cbi, "' is not defined in the package", sep="")
+           stop(error)
+         }
+  )
+}
+#' @title Get supported CBIs in evaluomeR.
+#' @aliases evaluomeRSupportedCBI
+#' @description
+#' A vector of supported CBIs available in evaluomeR.
+#'
+#' @return A String vector.
+#'
+#' @examples
+#' supportedCBIs <- evaluomeRSupportedCBI
+#'
+evaluomeRSupportedCBI <- function() {
+  return(pkg.env$cbi)
 }

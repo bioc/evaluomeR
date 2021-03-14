@@ -4,7 +4,7 @@
 \alias{quality}
 \title{Goodness of classifications.}
 \usage{
-quality(data, k = 5, getImages = TRUE, seed = NULL)
+quality(data, k = 5, cbi = "kmeans", getImages = TRUE, seed = NULL)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -16,6 +16,11 @@ The other columns of the header contains the names of the metrics.
 The rows contains the measurements of the metrics for each instance in the dataset.}
 
 \item{k}{Positive integer. Number of clusters between [2,15] range.}
+
+\item{cbi}{Clusterboot interface name (default: "kmeans"):
+"kmeans", "clara", "clara_pam", "hclust", "pamk", "pamk_pam", "pamk".
+Any CBI appended with '_pam' makes use of \code{\link{pam}}.
+The method used in 'hclust' CBI is "ward.D2".}
 
 \item{getImages}{Boolean. If true, a plot is displayed.}
 

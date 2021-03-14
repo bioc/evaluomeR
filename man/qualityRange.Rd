@@ -4,7 +4,8 @@
 \alias{qualityRange}
 \title{Goodness of classifications for a range of k clusters.}
 \usage{
-qualityRange(data, k.range = c(3, 5), getImages = TRUE, seed = NULL)
+qualityRange(data, k.range = c(3, 5), cbi = "kmeans",
+  getImages = TRUE, seed = NULL)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -19,6 +20,11 @@ The rows contains the measurements of the metrics for each instance in the datas
 The first value \code{k.range[1]} is considered as the lower bound of the range,
 whilst the second one, \code{k.range[2]}, as the higher. Both values must be
 contained in [2,15] range.}
+
+\item{cbi}{Clusterboot interface name (default: "kmeans"):
+"kmeans", "clara", "clara_pam", "hclust", "pamk", "pamk_pam", "pamk".
+Any CBI appended with '_pam' makes use of \code{\link{pam}}.
+The method used in 'hclust' CBI is "ward.D2".}
 
 \item{getImages}{Boolean. If true, a plot is displayed.}
 

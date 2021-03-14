@@ -4,7 +4,8 @@
 \alias{qualitySet}
 \title{Goodness of classifications for a set of k clusters.}
 \usage{
-qualitySet(data, k.set = c(2, 4), getImages = TRUE, seed = NULL)
+qualitySet(data, k.set = c(2, 4), cbi = "kmeans", getImages = TRUE,
+  seed = NULL)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -17,6 +18,11 @@ The rows contains the measurements of the metrics for each instance in the datas
 
 \item{k.set}{A list of integer values of \code{k}, as in c(2,4,8).
 The values must be contained in [2,15] range.}
+
+\item{cbi}{Clusterboot interface name (default: "kmeans"):
+"kmeans", "clara", "clara_pam", "hclust", "pamk", "pamk_pam", "pamk".
+Any CBI appended with '_pam' makes use of \code{\link{pam}}.
+The method used in 'hclust' CBI is "ward.D2".}
 
 \item{getImages}{Boolean. If true, a plot is displayed.}
 

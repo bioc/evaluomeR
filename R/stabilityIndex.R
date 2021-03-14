@@ -24,6 +24,10 @@
 #' The rows contains the measurements of the metrics for each instance in the dataset.
 #' @param k Positive integer. Number of clusters between [2,15] range.
 #' @param bs Positive integer. Bootstrap value to perform the resampling.
+#' @param cbi Clusterboot interface name (default: "kmeans"):
+#' "kmeans", "clara", "clara_pam", "hclust", "pamk", "pamk_pam", "pamk".
+#' Any CBI appended with '_pam' makes use of \code{\link{pam}}.
+#' The method used in 'hclust' CBI is "ward.D2".
 #' @param getImages Boolean. If true, a plot is displayed.
 #' @param seed Positive integer. A seed for internal bootstrap.
 #'
@@ -41,13 +45,13 @@
 #' \insertRef{jaccard1901distribution}{evaluomeR}
 #'
 #'
-stability <- function(data, k=5, bs=100,
+stability <- function(data, k=5, bs=100, cbi="kmeans",
                       getImages=TRUE, seed=NULL) {
 
   data <- as.data.frame(assay(data))
 
   checkKValue(k)
-  runStabilityIndex(data, k.min=k, k.max=k, bs, seed=seed)
+  runStabilityIndex(data, k.min=k, k.max=k, bs, cbi, seed=seed)
   stabilityDataFrame <- suppressWarnings(
     runStabilityIndexTableRange(data, k.min=k, k.max=k))
   if (getImages == TRUE) {
@@ -96,7 +100,7 @@ stability <- function(data, k=5, bs=100,
 #' \insertRef{jaccard1901distribution}{evaluomeR}
 #'
 #'
-stabilityRange <- function(data, k.range=c(2,15), bs=100,
+stabilityRange <- function(data, k.range=c(2,15), bs=100, cbi="kmeans",
                            getImages=TRUE, seed=NULL) {
   k.range.length = length(k.range)
   if (k.range.length != 2) {
@@ -112,7 +116,7 @@ stabilityRange <- function(data, k.range=c(2,15), bs=100,
 
   data <- as.data.frame(SummarizedExperiment::assay(data))
 
-  runStabilityIndex(data, k.min=k.min, k.max=k.max, bs, seed=seed)
+  runStabilityIndex(data, k.min=k.min, k.max=k.max, bs, cbi, seed=seed)
   stabilityDataFrame <- suppressWarnings(
     runStabilityIndexTableRange(data, k.min=k.min, k.max=k.max))
 
@@ -161,7 +165,7 @@ stabilityRange <- function(data, k.range=c(2,15), bs=100,
 #' \insertRef{jaccard1901distribution}{evaluomeR}
 #'
 #'
-stabilitySet <- function(data, k.set=c(2,3), bs=100,
+stabilitySet <- function(data, k.set=c(2,3), bs=100, cbi="kmeans",
                            getImages=TRUE, seed=NULL) {
   k.set.length = length(k.set)
   if (k.set.length == 0) {
@@ -176,7 +180,7 @@ stabilitySet <- function(data, k.set=c(2,3), bs=100,
 
   data <- as.data.frame(SummarizedExperiment::assay(data))
 
-  runStabilityIndex(data, k.set = k.set, bs=bs, seed=seed)
+  runStabilityIndex(data, k.set = k.set, bs=bs, cbi=cbi, seed=seed)
   stabilityDataFrame <- suppressWarnings(
     runStabilityIndexTableRange(data, k.set = k.set))
 
@@ -190,7 +194,8 @@ stabilitySet <- function(data, k.set=c(2,3), bs=100,
   return(se)
 }
 
-runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs, seed, k.set=NULL) {
+runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs,
+                              cbi, seed, k.set=NULL) {
   if (is.null(seed)) {
     seed = pkg.env$seed
   }
@@ -242,14 +247,51 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs, seed, k.set=NULL
       km5=NULL
       v.size=length(levels(as.factor(datos.bruto[,i])))
       if (v.size>=j.k) {
-
         #km5$cluster=boot.cluster(data=datos.bruto[,i],
         #                         nk=j.k, B=bs, seed=seed)
         #km5$jac=km5$cluster$means
-        km5$cluster=quiet(clusterboot(data=datos.bruto[,i], B=bs,
-                                bootmethod="boot",
-                                clustermethod=kmeansCBI,
-                                krange=j.k, seed=seed))
+
+        clusterbootData = tryCatch({
+          clusterbootWrapper(data=datos.bruto[,i], B=bs,
+                             bootmethod="boot",
+                             cbi=cbi,
+                             krange=j.k, seed=seed)
+        }, error = function(error_condition) {
+          error_condition
+        })
+
+        if(inherits(clusterbootData, "error")) {
+          message(paste0("\t", clusterbootData))
+          message("\tWarning: Could not process data for k = ", j.k)
+          km5$bspart=rep(NA,length(datos.bruto[,i]))
+          km5$jac=rep(NA,j.k)
+          km5$centr=rep(NA,j.k)
+          km5$means=km5$bspart
+          km5$bspart.or=km5$bspart
+          km5$bspart.inv=km5$means
+          km5$jac.or=km5$jac
+          km5$jac.inv=km5$jac
+          km5$partition=km5$bspart.inv
+          km5$jac.stab=km5$jac.inv
+
+          km5$csv = NULL
+          km5$csv$cluster_partition = NULL
+          km5$csv$cluster_mean = NULL
+          km5$csv$cluster_centers = NULL
+          km5$csv$cluster_size = NULL
+          km5$csv$cluster_betweenss = NULL
+          km5$csv$cluster_totss = NULL
+          km5$csv$cluster_tot.withinss = NULL
+          km5$csv$cluster_anova = NULL
+
+          m.stab.global[[i.metr]][j.k] = mean(km5$jac.stab)
+          m.stab.global.csv[[i.metr]][j.k] = list(km5)
+          estable[[which(bs.values==bs)]] = km5
+          next
+        }
+
+        km5$cluster = clusterbootData
+
         km5$jac=km5$cluster$bootmean
         km5$bspart=km5$cluster$partition
 
@@ -286,6 +328,7 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs, seed, k.set=NULL
         m.stab.global.csv[[i.metr]][j.k] = list(km5)
         estable[[which(bs.values==bs)]] = km5
       } else {
+        message("\tWarning: Could not process data for k = ", j.k)
         km5$bspart=rep(NA,length(datos.bruto[,i]))
         km5$jac=rep(NA,j.k)
         km5$centr=rep(NA,j.k)
@@ -398,9 +441,12 @@ runStabilityIndexTableRange <- function(data, k.min=NULL, k.max=NULL, k.set=NULL
     }  # end for i.metr
 
     # Transform into dataframe
-    stabilityDataFrame[[measure]] = t(data.frame(stabilityDataList))
-    colnames(stabilityDataFrame[[measure]]) = header
-    rownames(stabilityDataFrame[[measure]]) <- NULL
+    # Add df if has data
+    if (ncol(t(data.frame(stabilityDataList))) != 1) {
+      stabilityDataFrame[[measure]] = t(data.frame(stabilityDataList))
+      colnames(stabilityDataFrame[[measure]]) = header
+      rownames(stabilityDataFrame[[measure]]) <- NULL
+    }
   }
 
   return(stabilityDataFrame)
