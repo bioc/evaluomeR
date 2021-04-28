@@ -168,6 +168,39 @@ helperGetCBI <- function(cbi=pkg.env$cbi, krange) {
          }
   )
 }
+# Remove rows from a dataframe 'df' where for a certain column the row provides 'NA' value
+removeNAValues <- function(df, verbose=TRUE) {
+  rowNames = df[[1]]
+  affected = which(rowSums(is.na(df)) > 0)
+  if (verbose && length(affected) > 0) {
+    message("Warning: There are rows with NA values. I will remove these...")
+  }
+  for (row_i in affected) {
+    if (verbose) {
+      message("Row '", rowNames[row_i], "' was removed. NA values found in columns:")
+    }
+    for (column in colnames(df)) {
+      naDetected = is.na(df[row_i, column])
+      if (verbose && naDetected) {
+        message("- '", column,"' ")
+      }
+    }
+  }
+  df <- na.omit(df)
+  if (verbose) {
+    message("")
+  }
+  return (df)
+}
+
+# Basic stats of a dataframe
+dfStats <- function(df) {
+  message("Data loaded.\n",
+          "Number of rows: ", nrow(df), "\n",
+          "Number of columns: ", ncol(df), "\n\n"
+  )
+}
+
 #' @title Get supported CBIs in evaluomeR.
 #' @aliases evaluomeRSupportedCBI
 #' @description

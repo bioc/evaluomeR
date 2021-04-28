@@ -208,6 +208,10 @@ runQualityIndicesSilhouette <- function(data, k.min=NULL, k.max=NULL, bs,
   if (is.null(k.min) && is.null(k.max) && is.null(k.set)) {
     stop("runQualityIndicesSilhouette: All k parameters are null!")
   }
+
+  data <- removeNAValues(data)
+  dfStats(data)
+
   datos.bruto=data
   names.metr=names(datos.bruto)[-c(1)]
   pkg.env$names.metr = names.metr
@@ -588,6 +592,7 @@ runSilhouetteIMG <- function(data, k) {
 }
 
 runSilhouetteTable <- function(data, k) {
+  data = removeNAValues(data, verbose=FALSE)
   names.metr = pkg.env$names.metr
   datos.bruto = data
   estable = pkg.env$estable

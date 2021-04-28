@@ -202,6 +202,10 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs,
   if (is.null(k.min) && is.null(k.max) && is.null(k.set)) {
     stop("runStabilityIndex: All k parameters are null!")
   }
+
+  data <- removeNAValues(data)
+  dfStats(data)
+
   inversa=NULL
   m.stab.global = NULL
   m.stab.global.csv = NULL # To store new CSV output measures without altering legacy code
