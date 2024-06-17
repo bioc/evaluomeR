@@ -5,7 +5,7 @@
 \title{Stability index for a set of k clusters.}
 \usage{
 stabilitySet(data, k.set = c(2, 3), bs = 100, cbi = "kmeans",
-  getImages = TRUE, seed = NULL)
+  getImages = FALSE, all_metrics = FALSE, seed = NULL, ...)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -27,6 +27,8 @@ Any CBI appended with '_pam' makes use of \code{\link{pam}}.
 The method used in 'hclust' CBI is "ward.D2".}
 
 \item{getImages}{Boolean. If true, a plot is displayed.}
+
+\item{all_metrics}{Boolean. If true, clustering is performed upon all the dataset.}
 
 \item{seed}{Positive integer. A seed for internal bootstrap.}
 }

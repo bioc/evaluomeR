@@ -29,6 +29,7 @@
 #' Any CBI appended with '_pam' makes use of \code{\link{pam}}.
 #' The method used in 'hclust' CBI is "ward.D2".
 #' @param getImages Boolean. If true, a plot is displayed.
+#' @param all_metrics Boolean. If true, clustering is performed upon all the dataset.
 #' @param seed Positive integer. A seed for internal bootstrap.
 #'
 #' @return A \code{\link{ExperimentList}} containing the stability and cluster measurements
@@ -46,12 +47,12 @@
 #'
 #'
 stability <- function(data, k=5, bs=100, cbi="kmeans",
-                      getImages=TRUE, seed=NULL) {
+                      getImages=FALSE, all_metrics=FALSE, seed=NULL, ...) {
 
   data <- as.data.frame(assay(data))
 
   checkKValue(k)
-  runStabilityIndex(data, k.min=k, k.max=k, bs, cbi, seed=seed)
+  runStabilityIndex(data, k.min=k, k.max=k, bs=bs, cbi=cbi, all_metrics=all_metrics, seed=seed, ...)
   stabilityDataFrame <- suppressWarnings(
     runStabilityIndexTableRange(data, k.min=k, k.max=k))
   if (getImages == TRUE) {
@@ -101,7 +102,7 @@ stability <- function(data, k=5, bs=100, cbi="kmeans",
 #'
 #'
 stabilityRange <- function(data, k.range=c(2,15), bs=100, cbi="kmeans",
-                           getImages=TRUE, seed=NULL) {
+                           getImages=FALSE, all_metrics=FALSE, seed=NULL, ...) {
   k.range.length = length(k.range)
   if (k.range.length != 2) {
     stop("k.range length must be 2")
@@ -116,7 +117,7 @@ stabilityRange <- function(data, k.range=c(2,15), bs=100, cbi="kmeans",
 
   data <- as.data.frame(SummarizedExperiment::assay(data))
 
-  runStabilityIndex(data, k.min=k.min, k.max=k.max, bs, cbi, seed=seed)
+  runStabilityIndex(data, k.min=k.min, k.max=k.max, bs, cbi, all_metrics=all_metrics, seed=seed, ...)
   stabilityDataFrame <- suppressWarnings(
     runStabilityIndexTableRange(data, k.min=k.min, k.max=k.max))
 
@@ -166,7 +167,7 @@ stabilityRange <- function(data, k.range=c(2,15), bs=100, cbi="kmeans",
 #'
 #'
 stabilitySet <- function(data, k.set=c(2,3), bs=100, cbi="kmeans",
-                           getImages=TRUE, seed=NULL) {
+                           getImages=FALSE, all_metrics=FALSE, seed=NULL, ...) {
   k.set.length = length(k.set)
   if (k.set.length == 0) {
     stop("k.set list is empty")
@@ -180,7 +181,7 @@ stabilitySet <- function(data, k.set=c(2,3), bs=100, cbi="kmeans",
 
   data <- as.data.frame(SummarizedExperiment::assay(data))
 
-  runStabilityIndex(data, k.set = k.set, bs=bs, cbi=cbi, seed=seed)
+  runStabilityIndex(data, k.set = k.set, bs=bs, cbi=cbi, all_metrics=all_metrics, seed=seed, ...)
   stabilityDataFrame <- suppressWarnings(
     runStabilityIndexTableRange(data, k.set = k.set))
 
@@ -195,7 +196,7 @@ stabilitySet <- function(data, k.set=c(2,3), bs=100, cbi="kmeans",
 }
 
 runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs,
-                              cbi, seed, k.set=NULL) {
+                              cbi, all_metrics, seed, k.set=NULL, ...) {
   if (is.null(seed)) {
     seed = pkg.env$seed
   }
@@ -230,9 +231,21 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs,
     k.range.length = length(i.min:i.max)+1
   }
 
-  num.metrics = length(names.metr)
+  if (all_metrics == TRUE) { # Processing all metrics as one
+    num.metrics = 1
+  } else {
+    num.metrics = length(names.metr)
+  }
+
   for (i.metr in 1:num.metrics) {
-    message("Processing metric: ", names.metr[i.metr],"(", i.metr,")")
+
+    if (all_metrics == TRUE) {
+      message("Processing all metrics, 'merge', in dataframe (", length(names.metr),")")
+      pkg.env$names.metr = c("all_metrics")
+    } else {
+      message("Processing metric: ", names.metr[i.metr],"(", i.metr,")")
+    }
+
     m.stab.global[[i.metr]]=matrix(data=NA, nrow=1,
                                    ncol=k.range.length)
     m.stab.global.csv[[i.metr]]=matrix(data=NA, nrow=1,
@@ -248,18 +261,26 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs,
       estable$n.k=j.k
       estable$name.ontology=names(datos.bruto[1])
 
+      if (all_metrics == TRUE) { # Processing all metrics as one
+        data_to_cluster = datos.bruto[,-1] # Removing first column
+      } else {
+        data_to_cluster = datos.bruto[,i]
+      }
+
       km5=NULL
-      v.size=length(levels(as.factor(datos.bruto[,i])))
+      v.size=length(levels(as.factor(data_to_cluster)))
       if (v.size>=j.k) {
         #km5$cluster=boot.cluster(data=datos.bruto[,i],
         #                         nk=j.k, B=bs, seed=seed)
         #km5$jac=km5$cluster$means
 
+
+
         clusterbootData = tryCatch({
-          clusterbootWrapper(data=datos.bruto[,i], B=bs,
+          clusterbootWrapper(data=data_to_cluster, B=bs,
                              bootmethod="boot",
                              cbi=cbi,
-                             krange=j.k, seed=seed)
+                             krange=j.k, seed=seed, ...)
         }, error = function(error_condition) {
           error_condition
         })
@@ -309,26 +330,27 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs,
         km5$csv$cluster_tot.withinss = km5$cluster$result$result$tot.withinss
         km5$csv$cluster_anova = fAnova(km5$cluster$result$result, j.k, num.metrics)
 
-        km5$centr=by(datos.bruto[,i],km5$bspart,mean)
+        km5$centr=km5$cluster$result$result$centers
         for (km5.i in 1:length(km5$centr)) {
           km5$means[which(km5$bspart==km5.i)]=km5$centr[km5.i]
         }
 
-        km5$bspart.or=ordered(km5$means,labels=seq(1,length(km5$centr)))
+        #km5$bspart.or=ordered(km5$means,labels=seq(1,length(km5$centr)))
 
-        km5$bspart.inv=ordered(km5$means,labels=seq(length(km5$centr),1))
+        #km5$bspart.inv=ordered(km5$means,labels=seq(length(km5$centr),1))
 
-        km5$jac.or=km5$jac[order(km5$centr)]
-        km5$jac.inv=km5$jac[order(km5$centr,decreasing=TRUE)]
+        #km5$jac.or=km5$jac[order(km5$centr)]
+        #km5$jac.inv=km5$jac[order(km5$centr,decreasing=TRUE)]
 
-        if (any(inversa==names.metr[i.metr])) {
-          km5$partition=km5$bspart.inv
-          km5$jac.stab=km5$jac.inv
-        } else {
-          km5$partition=km5$bspart.or
-          km5$jac.stab=km5$jac.or
-        }
-        m.stab.global[[i.metr]][j.k] = mean(km5$jac.stab)
+        #if (any(inversa==names.metr[i.metr])) {
+        #  km5$partition=km5$bspart.inv
+        #  km5$jac.stab=km5$jac.inv
+        #} else {
+        #  km5$partition=km5$bspart.or
+        #  km5$jac.stab=km5$jac.or
+        #}
+        #m.stab.global[[i.metr]][j.k] = mean(km5$jac.stab)
+        m.stab.global[[i.metr]][j.k] = mean(km5$jac)
         m.stab.global.csv[[i.metr]][j.k] = list(km5)
         estable[[which(bs.values==bs)]] = km5
       } else {
@@ -354,7 +376,8 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs,
         km5$csv$cluster_tot.withinss = NULL
         km5$csv$cluster_anova = NULL
 
-        m.stab.global[[i.metr]][j.k] = mean(km5$jac.stab)
+        # m.stab.global[[i.metr]][j.k] = mean(km5$jac.stab)
+        m.stab.global[[i.metr]][j.k] = mean(km5$jac)
         m.stab.global.csv[[i.metr]][j.k] = list(km5)
         estable[[which(bs.values==bs)]] = km5
       }
@@ -367,7 +390,7 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs,
   for (j.k in k.range) {
     #e.stab.global[[j.k]]=matrix(data=NA, nrow=length(names.metr), ncol=length(i.min:i.max))
     e.stab.global[[j.k]]=matrix(data=NA, nrow=k.range.length, ncol=1)
-    for (i.metr in 1:length(names.metr)) {
+    for (i.metr in 1:length(pkg.env$names.metr)) {
       e.stab.global[[j.k]][i.metr]=m.stab.global[[i.metr]][j.k]
     }
   }
@@ -376,7 +399,7 @@ runStabilityIndex <- function(data, k.min=NULL, k.max=NULL, bs,
   pkg.env$m.stab.global.csv = m.stab.global.csv
   pkg.env$m.stab.global = m.stab.global
   pkg.env$e.stab.global = e.stab.global
-  pkg.env$names.metr = names.metr
+  #pkg.env$names.metr = names.metr
   #return(stabilityDataFrame)
   #return(NULL)
 }

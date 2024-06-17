@@ -47,7 +47,7 @@ pkg.env$estable = NULL
 pkg.env$names.index = NULL
 pkg.env$names.metr = NULL
 pkg.env$seed = 13606
-pkg.env$cbi = c("kmeans", "clara", "clara_pam", "hclust", "pamk", "pamk_pam") # Supported CBIs
+pkg.env$cbi = c("kmeans", "clara", "clara_pam", "hclust", "pamk", "pamk_pam", "rskc") # Supported CBIs
 
 
 #####################
@@ -135,8 +135,9 @@ createSEList <- function(data) {
 ## Returns a cluterboot interface (CBI) depending on the input string,
 ## with its specific function parameters in an list as in:
 ## list("method" = CBI Method, "args" = Lit of Specific arguments for this CBI)
-helperGetCBI <- function(cbi=pkg.env$cbi, krange) {
+helperGetCBI <- function(cbi=pkg.env$cbi, krange, ...) {
   cbi <- match.arg(cbi)
+  inargs <- as.list(match.call(expand.dots = TRUE))
   switch(cbi,
          kmeans={
            args = list("krange" = krange)
@@ -161,6 +162,13 @@ helperGetCBI <- function(cbi=pkg.env$cbi, krange) {
          pamk_pam={
            args = list("k" = krange, "usepam"=TRUE, criterion="asw")
            return(list("method" = pamkCBI, "args" = args))
+         },
+         rskc={
+           args = list("k" = krange)
+           if (!("L1" %in% names(inargs))) {
+             print("No argument 'L1' provided. Computing best L1 boundry with 'sparcl::KMeansSparseCluster.permute', this might take a bit longer")
+           }
+           return(list("method" = rskcCBI, "args" = args))
          },
          {
            error=paste("Input CBI '", cbi, "' is not defined in the package", sep="")

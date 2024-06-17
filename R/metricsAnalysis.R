@@ -141,10 +141,12 @@ plotMetricsBoxplot <- function(data) {
 #' @aliases plotMetricsCluster
 #' @description
 #' It clusters the value of the metrics in a \code{\link{SummarizedExperiment}}
-#' object as a boxplot.
+#' object a an hclust dendogram from \code{\link{stats}}. By default distance is measured in 'euclidean'
+#' and hclust method is 'ward.D20.
 #'
 #' @inheritParams stability
 #' @param scale Boolean. If true input data is scaled. Default: FALSE.
+#' @param k Integer. If not NULL a 'cutree' cut on the cluster is done. Default: NULL
 #'
 #' @return An hclust object.
 #'
@@ -153,7 +155,7 @@ plotMetricsBoxplot <- function(data) {
 #' data("ontMetrics")
 #' plotMetricsCluster(ontMetrics, scale=TRUE)
 #'
-plotMetricsCluster <- function(data, scale=FALSE) {
+plotMetricsCluster <- function(data, scale=FALSE, k=NULL) {
   data <- as.data.frame(assay(data))
   data.metrics = data[,-1] # Removing Description column
   if (isTRUE(scale)) {
@@ -161,13 +163,16 @@ plotMetricsCluster <- function(data, scale=FALSE) {
   }
   d <- dist(t(data.metrics), method = "euclidean") # distance matrix
   fit <- hclust(d, method="ward.D2")
-  theme_set(theme_bw())
-  p <- ggdendrogram(fit, rotate = FALSE, size = 2) + # display dendogram
-    theme(
-      text = element_text(size=15)
-    ) +
-    labs(title="Metrics dendrogram")
-  print(p)
+
+  dend <- as.dendrogram(fit)
+
+  nodePar <- list(lab.cex = 0.6, pch = c(NA, 19), cex = 0.7, col = "blue")
+  plot(dend, xlab = "", sub="", ylab = "Euclidean distance",
+       main = paste0("Metrics dendrogram 'ward.D2'"), nodePar = nodePar)
+
+  if (!is.null(k)) {
+    dendextend::rect.dendrogram(dend , k=k, border="purple")
+  }
   return(fit)
 }
 
@@ -179,6 +184,7 @@ plotMetricsCluster <- function(data, scale=FALSE) {
 #' object as a violin plot.
 #'
 #' @inheritParams stability
+#' @param nplots Positive integer. Number of metrics per violin plot. Default: 20.
 #'
 #' @return Nothing.
 #'
@@ -187,20 +193,20 @@ plotMetricsCluster <- function(data, scale=FALSE) {
 #' data("ontMetrics")
 #' plotMetricsViolin(ontMetrics)
 #'
-plotMetricsViolin <- function(data) {
+plotMetricsViolin <- function(data, nplots=20) {
   data <- as.data.frame(assay(data))
   data.metrics = data[,-1] # Removing Description column
-  num_metrics_plot=20
+  nplots=20
 
   metrics_length = length(colnames(data.metrics))
-  num_iterations = round(metrics_length/num_metrics_plot)
+  num_iterations = round(metrics_length/nplots)
   if (num_iterations > 0) {
     num_iterations = num_iterations - 1
   }
   for (iteration in 0:num_iterations) {
       i = 1
-      rangeStart = (iteration*num_metrics_plot)+1
-      rangeEnd = rangeStart+num_metrics_plot-1
+      rangeStart = (iteration*nplots)+1
+      rangeEnd = rangeStart+nplots-1
       if (rangeEnd > metrics_length) {
         rangeEnd = metrics_length
       }
@@ -419,7 +425,7 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
 #' @inheritParams stability
 #' @param k.vector1 Vector of positive integers representing \code{k} clusters.
 #' The \code{k} values must be contained in [2,15] range.
-#' @param k.vector2 Vector of positive integers representing \code{k} clusters.
+#' @param k.vector2 Optional. Vector of positive integers representing \code{k} clusters.
 #' The \code{k} values must be contained in [2,15] range.
 #'
 #' @return Nothing.
@@ -432,7 +438,7 @@ getOptimalKValue <- function(stabData, qualData, k.range=NULL) {
 #' kOptTable = getOptimalKValue(stabilityData, qualityData)
 #'
 #'
-plotMetricsClusterComparison <- function(data, k.vector1, k.vector2, seed=NULL) {
+plotMetricsClusterComparison <- function(data, k.vector1, k.vector2=NULL, seed=NULL) {
   if (is.null(seed)) {
     seed = pkg.env$seed
   }
@@ -446,6 +452,10 @@ plotMetricsClusterComparison <- function(data, k.vector1, k.vector2, seed=NULL) 
 
   if (length(k.vector1) == 1) {
     k.vector1=rep(k.vector1, numMetrics)
+  }
+
+  if (is.null(k.vector2)) {
+    k.vector2 = k.vector1 # This will colour elipses around the same clusters of k.vector1
   }
 
   if (length(k.vector2) == 1) {
@@ -599,6 +609,12 @@ standardizeQualityData <- function(qualData, k.range=NULL) {
     if (!is.null(k.range) && (k < k.range[1] || k > k.range[2])) {
       next
     }
+    if (length(values) < length(Metric)) {
+      for (i in seq(length(values), length(Metric)-1,1)) {
+        values = append(values, NaN)
+      }
+    }
+
     qualDf[[newColname]] = values
   }
 
@@ -660,5 +676,204 @@ standardizeStabilityData <- function(stabData, k.range=NULL) {
   return(stabDf)
 }
 
+#' @title Calculate the cluster ID from the optimal cluster per metric for each individual.
+#' annotateClustersByMetric
+#' @aliases annotateClustersByMetric
+#' @description
+#' Return a named list, where each metric name is linked to a data frame
+#' containing the evaluated individuals, their score for the specified metric,
+#' and the cluster id in which each individual is classified. This cluster
+#' assignment is performed by calculating the optimal k value by evaluome.
+#'
+#' @param df Input data frame. The first column denotes the identifier of the
+#' evaluated individuals. The remaining columns contain the metrics used to
+#' evaluate the individuals. Rows with NA values will be ignored.
+#' @param k.range Range of k values in which the optimal k will be searched
+#' @param bs Bootstrap re-sample param.
+#' @param seed Random seed to be used.
+#'
+#' @return A named list resulting from computing the optimal cluster for each
+#' metric. Each metric is a name in the named list, and its content is a
+#' data frame that includes the individuals, the value for the corresponding
+#' metric, and the cluster id in which the individual has been asigned according
+#' to the optimal cluster.
+#' @export
+#'
+#' @examples
+#' data("ontMetrics")
+#' annotated_clusters=annotateClustersByMetric(ontMetrics, k.range=c(2,3), bs=20, seed=100)
+#' View(annotated_clusters[['ANOnto']])
+annotateClustersByMetric <- function(df, k.range, bs, seed){
+  if (is.null(seed)) {
+    seed = pkg.env$seed
+  }
+  df <- as.data.frame(assay(df))
+  # Create a dataframe by removing NAs from the original data.
+  df_clean = na.omit(df)
+
+  # Compute stability, quality and the optimal k value from evaluome
+  stabilityData <- stabilityRange(data=df_clean, k.range=k.range,
+                                  bs=bs, getImages = FALSE, seed=seed)
+
+  qualityData <- qualityRange(data=df_clean, k.range=k.range,
+                              getImages = FALSE, seed=seed)
+
+  kOptTable <- getOptimalKValue(stabilityData, qualityData)
+
+  # Get the clusters obtained by evaluome for each k, together with
+  # the optimal k
+  clusters = as.data.frame(assay(stabilityData$cluster_partition))
+  clusters$optimal_k = kOptTable$Global_optimal_k
+
+  # Compose the results
+  # For each metric, get the optimal k, get the clusters formed by using
+  # that optimal k, include this information in a dataframe
+  result_list = list()
+
+  for (i in 1:nrow(clusters)){
+    metric = as.character(clusters$Metric[i])
+    # Get the optimal k
+    optimal_k = clusters$optimal_k[i]
+
+    # Get the clusters formed by using the optimal k as a vector of integers
+    optimal_cluster = dplyr::select(clusters, dplyr::contains(as.character(optimal_k)))
+    optimal_cluster = optimal_cluster[i,1]
+    optimal_cluster = as.character(optimal_cluster)
+    optimal_cluster = as.numeric(strsplit(optimal_cluster, ", ")[[1]])
+
+    # Create a dataframe including the individual id, the concerning metric
+    # and the cluster id in which the individual is classfied.
+    annotated_df_clean = dplyr::select(df_clean, 1)
+    annotated_df_clean$cluster = optimal_cluster
+
+    # Merge this dataframe with the original one, so that original individuals
+    # removed due to NAs will be present an NA as cluster.
+    # Include this dataframe in the named list, using the name of the metric as
+    # a key.
+    result_list[[metric]] = merge(dplyr::select(df, 1, dplyr::contains(metric)), annotated_df_clean, all.x = TRUE)
+  }
+  return(result_list)
+}
 
 
+#' @title Get the range of each metric per cluster from the optimal cluster.
+#' getMetricRangeByCluster
+#' @aliases getMetricRangeByCluster
+#' @description
+#' Obtains the ranges of the metrics obtained by each optimal cluster.
+#'
+#' @param df Input data frame. The first column denotes the identifier of the
+#' evaluated individuals. The remaining columns contain the metrics used to
+#' evaluate the individuals. Rows with NA values will be ignored.
+#' @param k.range Range of k values in which the optimal k will be searched
+#' @param bs Bootstrap re-sample param.
+#' @param seed Random seed to be used.
+#'
+#' @return A dataframe including the min and the max value for each
+#' pair (metric, cluster).
+#' @export
+#'
+#' @examples
+#' data("ontMetrics")
+#' ranges = getMetricRangeByCluster(ontMetrics, k.range=c(2,3), bs=20, seed=100)
+#' View(ranges)
+getMetricRangeByCluster <- function(df, k.range, bs, seed) {
+  if (is.null(seed)) {
+    seed = pkg.env$seed
+  }
+  df <- as.data.frame(assay(df))
+  annotated_clusters_by_metric = annotateClustersByMetric(df, k.range, bs, seed)
+
+  metrics = c()
+  cluster_ids = c()
+  min_values = c()
+  max_values = c()
+  # For each metric
+  for (metric in names(annotated_clusters_by_metric)){
+    # Get the optimal clusters
+    annotated_clusters = annotated_clusters_by_metric[[metric]]
+
+    # For each cluster, get the minimal and the maximal value
+    for (cluster_id in 1:max(annotated_clusters$cluster, na.rm=T)) {
+      concrete_cluster_values = dplyr::filter(annotated_clusters, cluster==cluster_id) %>% dplyr::pull(metric)
+      metrics = c(metrics, metric)
+      cluster_ids = c(cluster_ids, cluster_id)
+      min_values = c(min_values, min(concrete_cluster_values))
+      max_values = c(max_values, max(concrete_cluster_values))
+    }
+  }
+  return(data.frame(metric=metrics, cluster=cluster_ids, min_value=min_values, max_value=max_values))
+}
+
+
+#' @title Get the range of each metric per cluster from the optimal cluster.
+#' getMetricRangeByCluster
+#' @aliases getMetricRangeByCluster
+#' @description
+#' Obtains the ranges of the metrics obtained by each optimal cluster.
+#'
+#' @param df Input data frame. The first column denotes the identifier of the
+#' evaluated individuals. The remaining columns contain the metrics used to
+#' evaluate the individuals. Rows with NA values will be ignored.
+#' @param k K value (number of clusters)
+#' @param alpha 0 <= alpha <= 1, the proportion of the cases to be trimmed in robust sparse K-means, see \code{\link{RSKC}}.
+#' @param L1 A single L1 bound on weights (the feature weights), see \code{\link{RSKC}}.
+#' @param seed Random seed to be used.
+#'
+#' @return A dataframe including the min and the max value for each
+#' pair (metric, cluster).
+#' @export
+#'
+#' @examples
+#' data("ontMetrics")
+#' metricsRelevancy = getMetricsRelevancy(ontMetrics, k=3, alpha=0.1, seed=100)
+#' metricsRelevancy$rskc # RSKC output object
+#' metricsRelevancy$trimmed_cases # Trimmed cases from input (row indexes)
+#' metricsRelevancy$relevancy # Metrics relevancy table
+#'
+getMetricsRelevancy <- function(df, k, alpha=NULL, L1=NULL, seed=NULL) {
+    if (is.null(seed)) {
+    seed = pkg.env$seed
+  }
+  if (is.null(alpha)) {
+    alpha = 0.1
+  }
+
+  df <- as.data.frame(assay(df))
+
+  if (is.null(L1)) {
+    print(paste0("No L1 provided. Computing best L1 boundry with 'sparcl::KMeansSparseCluster.permute'"))
+    dataMatrix = as.matrix(df)
+    wbounds = seq(2,sqrt(ncol(dataMatrix)), len=30)
+    km.perm <- sparcl::KMeansSparseCluster.permute(dataMatrix,K=k,wbounds=wbounds,nperms=5,silent=TRUE)
+    L1 = km.perm$bestw
+
+  }
+
+
+  # Compute RSKC
+  print(paste0("Alpha set as: ", alpha))
+  print(paste0("L1 set as: ", L1))
+  rskc_out = RSKC(df, k, alpha, L1 = L1, nstart = 200,
+                  silent=TRUE, scaling = FALSE, correlation = FALSE)
+  # Get trimmed cases from input
+  union_vector = c(rskc_out$oE,rskc_out$oW)
+  union_vector_unique = unique(union_vector)
+  union_vector_unique = sort(union_vector_unique)
+
+  # Metrics relevancy
+  columns = c('metric', 'weight')
+  rskc_df = data.frame(matrix(ncol = length(columns), nrow = length(rskc_out$weights)))
+  colnames(rskc_df) = columns
+  rskc_df['metric'] = names(rskc_out$weights)
+  rskc_df['weight'] = rskc_out$weights
+  rskc_df_sorted = rskc_df[order(rskc_df$weight, decreasing = TRUE), ] # Sorting from greater values to lower
+
+
+
+  output = NULL
+  output$rskc = rskc_out
+  output$trimmed_cases = union_vector_unique
+  output$relevancy = rskc_df_sorted
+  return (output)
+}

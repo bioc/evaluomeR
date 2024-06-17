@@ -306,6 +306,7 @@ claraCBI <- function(data,k,usepam=TRUE,diss=inherits(data,"dist"),...){
   #  print(sc1)
   for (i in 1:nc)
     cl[[i]] <- partition==i
+
   out <- list(result=c1,nc=nc,clusterlist=cl,partition=partition,
               clustermethod="clara/pam")
   out
@@ -370,8 +371,72 @@ speccCBI <- function(data,k,...){
 #     out
 # }
 
+kmeansruns <- function(data,krange=2:10,criterion="ch",
+                       iter.max=100,runs=100,
+                       scaledata=FALSE,alpha=0.001,
+                       critout=FALSE,plot=FALSE,...){
+  data <- as.matrix(data)
+  if (scaledata) data <- scale(data)
+  if (criterion=="asw") sdata <- dist(data)
+  cluster1 <- 1 %in% krange
+  crit <- numeric(max(krange))
+  km <- list()
+  for (k in krange){
+    if (k>1){
+      minSS <- Inf
+      kmopt <- NULL
+      for (i in 1:runs){
+        options(show.error.messages = FALSE)
+        #numUnique = length(unique(data))
+        #print(paste0("Num unique: ", numUnique))
+        #print(paste0("Num NOT unique: ", length(data)))
+        #repeat{
+          #          cat(k," ",i,"before \n")
+          kmm <- try(kmeans(data,k,iter.max=iter.max,...))
+          #          str(kmm)
+          if (inherits(kmm,"try-error")) {
+            stop(paste0("Cannot compute for k = ", k))
+          }
+        #}
+        options(show.error.messages = TRUE)
+        swss <- sum(kmm$withinss)
+        #        print(calinhara(data,kmm$cluster))
+        if (swss<minSS){
+          kmopt <- kmm
+          minSS <- swss
+        }
+        if (plot){
+          par(ask=TRUE)
+          pairs(data,col=kmm$cluster,main=swss)
+        }
+      } # for i
+      km[[k]] <- kmopt
+      #      print(km[[k]])
+      #      print(calinhara(data,km[[k]]$cluster))
+      crit[k] <- switch(criterion,
+                        asw=cluster.stats(sdata,km[[k]]$cluster)$avg.silwidth,
+                        ch=calinhara(data,km[[k]]$cluster))
+      if (critout)
+        cat(k," clusters ",crit[k],"\n")
+    } # if k>1
+  } # for k
+  if (cluster1)
+    cluster1 <- dudahart2(data,km[[2]]$cluster,alpha=alpha)$cluster1
+  k.best <- which.max(crit)
+  if (cluster1)
+    k.best <- 1
+  #  print(crit)
+  #  print(k.best)
+  #  print(km[[k.best]])
+  km[[k.best]]$crit <- crit
+  km[[k.best]]$bestk <- k.best
+  out <- km[[k.best]]
+  out
+}
+
 kmeansCBI <- function(data,krange,k=NULL,scaling=FALSE,runs=1,criterion="ch",...){
   if (!is.null(k)) krange <- k
+  #print(paste0("k is ", krange))
   if(!identical(scaling,FALSE))
     sdata <- scale(data,center=TRUE,scale=scaling)
   else
@@ -380,12 +445,46 @@ kmeansCBI <- function(data,krange,k=NULL,scaling=FALSE,runs=1,criterion="ch",...
   partition <- c1$cluster
   cl <- list()
   nc <- c1$bestk
-  #  print(nc)
-  #  print(sc1)
+  # print("---")
+  # print(nc)
+  # print(c1)
   for (i in 1:nc)
     cl[[i]] <- partition==i
+
   out <- list(result=c1,nc=nc,clusterlist=cl,partition=partition,
               clustermethod="kmeans")
+  out
+}
+
+rskcCBI <- function(data,krange,k=NULL,scaling=FALSE,alpha=0,L1=NULL,correlation=FALSE,
+                    silent=TRUE,nstart = 200, ...) {
+
+
+  if (ncol(data) <= 1) {
+    stop("Cannot perform RSKC clustering. Input dataframe must at least provide two columns")
+  }
+
+  if (!is.null(k)) krange <- k
+  if (is.null(L1)) { # Compute automatic best L1 boundry
+    #print(paste0("No L1 provided. Computing best L1 boundry with 'sparcl::KMeansSparseCluster.permute'"))
+    wbounds = seq(2,sqrt(ncol(data)), len=30)
+    km.perm <- sparcl::KMeansSparseCluster.permute(data,K=krange,wbounds=wbounds,nperms=5,silent=TRUE)
+    L1 = km.perm$bestw
+    #print(paste0("Best L1 upper bound is: ", L1))
+  } # Else whatever the user want
+
+  c1 = RSKC(data, krange, alpha, L1, nstart = 200,
+            silent=silent, scaling=scaling,correlation=correlation)
+
+  partition <- c1$labels
+  cl <- list()
+  nc <- c1$ncl
+
+  for (i in 1:nc)
+    cl[[i]] <- partition==i
+
+  out <- list(result=c1,nc=nc,clusterlist=cl,partition=partition,
+              clustermethod="rskc")
   out
 }
 
@@ -403,6 +502,7 @@ pamkCBI <- function (data, krange = 2:10,k=NULL,
   nc <- c1$nc
   #    print(nc)
   for (i in 1:nc) cl[[i]] <- partition == i
+
   out <- list(result = c1, nc = nc, clusterlist = cl, partition = partition,
               clustermethod = "pam/estimated k",criterion=criterion)
   out
@@ -533,7 +633,6 @@ clusterboot <- function(data,B=100,
     # checkIfCanCluster(data=data, ...)
     c1 <- clustermethod(data,...)
   }
-
   #  print(noisemethod)
   #  print(str(c1))
   if (noisemethod){

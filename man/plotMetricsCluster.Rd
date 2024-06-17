@@ -4,7 +4,7 @@
 \alias{plotMetricsCluster}
 \title{Metric values clustering.}
 \usage{
-plotMetricsCluster(data, scale = FALSE)
+plotMetricsCluster(data, scale = FALSE, k = NULL)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -16,13 +16,16 @@ The other columns of the header contains the names of the metrics.
 The rows contains the measurements of the metrics for each instance in the dataset.}
 
 \item{scale}{Boolean. If true input data is scaled. Default: FALSE.}
+
+\item{k}{Integer. If not NULL a 'cutree' cut on the cluster is done. Default: NULL}
 }
 \value{
 An hclust object.
 }
 \description{
 It clusters the value of the metrics in a \code{\link{SummarizedExperiment}}
-object as a boxplot.
+object a an hclust dendogram from \code{\link{stats}}. By default distance is measured in 'euclidean'
+and hclust method is 'ward.D20.
 }
 \examples{
 # Using example data from our package

@@ -114,15 +114,16 @@ getMeasureValue <- function(km5, measureName) {
 ######################################################
 #function
 #   clusterbootWrapper(data, B, bootmethod="boot",
-#                     clustermethod=kmeansCBI, krange, seed)
+#                     clustermethod=kmeansCBI, krange, seed, ...)
 #     Wrapper method for clusterboot functionality.
 
 clusterbootWrapper <- function(data, B, bootmethod="boot",
-                               cbi, krange, seed) {
-  cbiHelperResult = helperGetCBI(cbi, krange)
+                               cbi, krange, seed, ...) {
+  cbiHelperResult = helperGetCBI(cbi, krange, ...)
 
-  #cat ("Using: ", cbi, "\n")
-  #cat ("Type: ", typeof(cbiHelperResult[["method"]]), "\n")
+  #cat("Using: ", cbi, "\n")
+  #cat("Type: ", typeof(cbiHelperResult[["method"]]), "\n")
+  #print(cbiHelperResult)
 
   mandatoryArgs = list(
     "data"=data,
@@ -133,6 +134,8 @@ clusterbootWrapper <- function(data, B, bootmethod="boot",
   )
 
   methodArgs = append(mandatoryArgs, cbiHelperResult[["args"]])
+  # Append parameters that the user might have specified in the ellipsis
+  methodArgs = append(methodArgs, list(...))
 
   return (
             #quiet(
@@ -148,10 +151,10 @@ clusterbootWrapper <- function(data, B, bootmethod="boot",
 ######################################################
 #function
 #   clusteringWrapper(data, cbi, krange, seed)
-#     Wrapper method for clustering functionality.
+#     Wrapper method for clustering without bootstrap functionality.
 
-clusteringWrapper <- function(data, cbi, krange, seed) {
-  cbiHelperResult = helperGetCBI(cbi, krange)
+clusteringWrapper <- function(data, cbi, krange, seed, ...) {
+  cbiHelperResult = helperGetCBI(cbi, krange, ...)
 
   old.seed <- .Random.seed
   on.exit( { .Random.seed <<- old.seed } )
@@ -166,6 +169,8 @@ clusteringWrapper <- function(data, cbi, krange, seed) {
   )
 
   methodArgs = append(mandatoryArgs, cbiHelperResult[["args"]])
+  # Append parameters that the user might have specified in the ellipsis
+  methodArgs = append(methodArgs, list(...))
 
   # print(cbiHelperResult[["method"]])
   # print(methodArgs)
@@ -200,10 +205,12 @@ checkIfCanCluster <- function(data, ...) {
   }
 
   numUnique = length(unique(data))
+  #print(paste0("Not unique:", length(data)))
+  #print(paste0("Unique:", numUnique))
   #print(paste0("Division is:", numUnique/k))
-  #print(paste0("Return is: ", (numUnique/k) > 1))
+  #print(paste0("Do I stop?: ", (numUnique/k) < 1))
 
-  if ((numUnique/k) <= 1) {
+  if ((numUnique/k) < 1) {
     stop(paste0("Not enough data to cluster '", numUnique, "' unique values in '", k, "' clusters"))
   }
 
