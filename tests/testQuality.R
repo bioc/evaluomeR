@@ -1,7 +1,7 @@
 library(evaluomeR)
 library(RSKC)
 library(sparcl)
-
+seed = 100
 dataFrame <- quality(data=ontMetrics, cbi="kmeans", k=3)
 assay(dataFrame)
 # Metric     Cluster_1_SilScore  Cluster_2_SilScore  Cluster_3_SilScore  Avg_Silhouette_Width Cluster_1_Size Cluster_2_Size Cluster_3_Size

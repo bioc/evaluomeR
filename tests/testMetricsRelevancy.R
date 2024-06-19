@@ -33,3 +33,4 @@ test = qualityRange(data=ontMetrics, k.range=c(3,3),
 
 # Shows how clusters are partitioned according to the individuals
 individuals_per_cluster(test$k_3)
+

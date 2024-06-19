@@ -172,7 +172,8 @@ qualityRange <- function(data, k.range=c(3,5), cbi="kmeans", getImages=FALSE,
 #' @references
 #' \insertRef{kaufman2009finding}{evaluomeR}
 #'
-qualitySet <- function(data, k.set=c(2,4), cbi="kmeans", getImages=FALSE, seed=NULL, ...) {
+qualitySet <- function(data, k.set=c(2,4), cbi="kmeans", all_metrics=FALSE,
+                       getImages=FALSE, seed=NULL, ...) {
 
   k.set.length = length(k.set)
   if (k.set.length == 0) {
@@ -188,7 +189,8 @@ qualitySet <- function(data, k.set=c(2,4), cbi="kmeans", getImages=FALSE, seed=N
   data <- as.data.frame(assay(data))
 
   suppressWarnings(
-    runQualityIndicesSilhouette(data, bs = 1, seed=seed, cbi=cbi, k.set=k.set, ...))
+    runQualityIndicesSilhouette(data, bs = 1, seed=seed, cbi=cbi, all_metrics=all_metrics,
+                                k.set=k.set, ...))
   silhouetteData =  suppressWarnings(
     runSilhouetteTableRange(data, k.set=k.set))
 

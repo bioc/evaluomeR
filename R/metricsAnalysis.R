@@ -702,7 +702,7 @@ standardizeStabilityData <- function(stabData, k.range=NULL) {
 #' @examples
 #' data("ontMetrics")
 #' annotated_clusters=annotateClustersByMetric(ontMetrics, k.range=c(2,3), bs=20, seed=100)
-#' View(annotated_clusters[['ANOnto']])
+#' annotated_clusters[['ANOnto']]
 annotateClustersByMetric <- function(df, k.range, bs, seed){
   if (is.null(seed)) {
     seed = pkg.env$seed
@@ -775,8 +775,8 @@ annotateClustersByMetric <- function(df, k.range, bs, seed){
 #'
 #' @examples
 #' data("ontMetrics")
-#' ranges = getMetricRangeByCluster(ontMetrics, k.range=c(2,3), bs=20, seed=100)
-#' View(ranges)
+#' #ranges = getMetricRangeByCluster(ontMetrics, k.range=c(2,3), bs=20, seed=100)
+
 getMetricRangeByCluster <- function(df, k.range, bs, seed) {
   if (is.null(seed)) {
     seed = pkg.env$seed

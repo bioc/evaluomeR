@@ -156,8 +156,19 @@ clusterbootWrapper <- function(data, B, bootmethod="boot",
 clusteringWrapper <- function(data, cbi, krange, seed, ...) {
   cbiHelperResult = helperGetCBI(cbi, krange, ...)
 
-  old.seed <- .Random.seed
-  on.exit( { .Random.seed <<- old.seed } )
+  if(exists(".Random.seed")){
+    # .Random.seed might not exist when launched as background job
+    # so only store and reset if it exists
+    old.seed <- .Random.seed
+  }
+
+  on.exit(
+    {
+      if(exists("old.seed")) {
+        .Random.seed <<- old.seed
+      }
+    }
+  )
 
   if (!is.null(seed)) set.seed(seed)
 
