@@ -2,7 +2,7 @@ Package: evaluomeR
 Type: Package
 Title: Evaluation of Bioinformatics Metrics
 URL: https://github.com/neobernad/evaluomeR
-Version: 1.21.2
+Version: 1.21.3
 Authors@R: c(
     person("José Antonio", "Bernabé-Díaz", email = "joseantonio.bernabe1@um.es", role = c("aut", "cre")),
     person("Manuel", "Franco", email = "mfranco@um.es", role = "aut"),

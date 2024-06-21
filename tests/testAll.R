@@ -49,7 +49,7 @@ dataFrame <- stability(data=rnaMetrics, cbi="clara_pam", k=2, bs=100, all_metric
 dataFrame <- stability(data=rnaMetrics, cbi="hclust", k=2, bs=100, all_metrics = FALSE, getImages = FALSE)
 dataFrame <- stability(data=rnaMetrics, cbi="pamk", k=2, bs=100, all_metrics = FALSE, getImages = FALSE)
 dataFrame <- stability(data=rnaMetrics, cbi="pamk_pam", k=2, bs=100, all_metrics = FALSE, getImages = FALSE)
-dataFrame <- stability(data=rnaMetrics, cbi="rskc", k=2, bs=100, all_metrics = TRUE, L1 = 2, alpha=0, getImages = FALSE)
+#dataFrame <- stability(data=rnaMetrics, cbi="rskc", k=2, bs=100, all_metrics = TRUE, L1 = 2, alpha=0, getImages = FALSE)
 
 # Supported CBIs:
 evaluomeRSupportedCBI()

@@ -773,9 +773,7 @@ annotateClustersByMetric <- function(df, k.range, bs, seed){
 #' pair (metric, cluster).
 #' @export
 #'
-#' @examples
-#' data("ontMetrics")
-#' #ranges = getMetricRangeByCluster(ontMetrics, k.range=c(2,3), bs=20, seed=100)
+
 
 getMetricRangeByCluster <- function(df, k.range, bs, seed) {
   if (is.null(seed)) {
