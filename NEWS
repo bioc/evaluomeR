@@ -1,4 +1,11 @@
-Changes in version 1.7.5 (2021-03-º1)
+Changes in version 1.7.8 (2022-10-12)
+  + All metrics within dataframe can be clustered altogether in evaluomeR,
+  instead of clustering per metric.
+
+Changes in version 1.7.6-7 (2021-03-01)
+  + Bug fix: Infinite boot removed from kmeansruns in FPC pacakge.
+
+Changes in version 1.7.5 (2021-03-01)
   + Minor bug fix for Mac compilation.
 
 Changes in version 1.7.4 (2020-06-01)

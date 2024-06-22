@@ -5,7 +5,8 @@
 \title{Comparison between two clusterings as plot.
 plotMetricsClusterComparison}
 \usage{
-plotMetricsClusterComparison(data, k.vector1, k.vector2, seed = NULL)
+plotMetricsClusterComparison(data, k.vector1, k.vector2 = NULL,
+  seed = NULL)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -19,7 +20,7 @@ The rows contains the measurements of the metrics for each instance in the datas
 \item{k.vector1}{Vector of positive integers representing \code{k} clusters.
 The \code{k} values must be contained in [2,15] range.}
 
-\item{k.vector2}{Vector of positive integers representing \code{k} clusters.
+\item{k.vector2}{Optional. Vector of positive integers representing \code{k} clusters.
 The \code{k} values must be contained in [2,15] range.}
 
 \item{seed}{Positive integer. A seed for internal bootstrap.}

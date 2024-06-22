@@ -4,7 +4,7 @@
 \alias{plotMetricsViolin}
 \title{Metric values as violin plot.}
 \usage{
-plotMetricsViolin(data)
+plotMetricsViolin(data, nplots = 20)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -14,6 +14,8 @@ of the instance of the dataset (e.g., ontology, pathway, etc.) on which the
 metrics are measured.
 The other columns of the header contains the names of the metrics.
 The rows contains the measurements of the metrics for each instance in the dataset.}
+
+\item{nplots}{Positive integer. Number of metrics per violin plot. Default: 20.}
 }
 \value{
 Nothing.
