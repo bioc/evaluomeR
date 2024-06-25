@@ -28,6 +28,7 @@ unsrturl.bst
 .dropbox
 .exrc
 .gdb.history
+notebooks/local/.ipynb_checkpoints/
 .gitattributes
 .gitmodules
 .hgtags
@@ -35,3 +36,6 @@ unsrturl.bst
 .seed
 .settings
 .tm_properties
+*.tiff
+usecases/usecase1/plots-rm/
+usecases/usecase1/results-csv-rm/

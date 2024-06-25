@@ -3,6 +3,7 @@ library(evaluomeR)
 
 evaluomeRSupportedCBI()
 
+<<<<<<< HEAD
 dataFrame <- stability(data=ontMetrics, cbi="kmeans", k=3, all_metrics=FALSE, bs=100, L1=10)
 assay(dataFrame)
 
@@ -54,3 +55,24 @@ d
 # RSKC works when more than 2 columns are provided
 
 r3<-RSKC(d[,1:5],ncl,alpha=10/60,L1=6,nstart=200)
+=======
+
+dataFrame <- stability(data=ontMetrics, cbi="kmeans", k=3, all_metrics=FALSE, bs=100)
+assay(dataFrame)
+
+dataFrame <- stabilityRange(data=ontMetrics, cbi="rskc", k.range=c(3,4), all_metrics=TRUE, bs=100, L1=2)
+assay(dataFrame)
+
+dataFrame <- stabilitySet(data=ontMetrics, k.set=c(3,4), bs=100, cbi="rskc", all_metrics=TRUE, L1=2)
+assay(dataFrame)
+
+dataFrame <- quality(data=ontMetrics, cbi="rskc", k=3, all_metrics=TRUE, L1=2)
+assay(dataFrame)
+
+dataFrame <- qualityRange(data=ontMetrics, cbi="rskc", k.range=c(3,4), all_metrics=TRUE, L1=2)
+assay(dataFrame$k_3)
+
+dataFrame <- qualitySet(data=ontMetrics, cbi="rskc", k.set=c(3,5), all_metrics=TRUE, L1=2)
+assay(dataFrame$k_3)
+
+>>>>>>> devel

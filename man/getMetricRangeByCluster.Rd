@@ -25,7 +25,3 @@ pair (metric, cluster).
 \description{
 Obtains the ranges of the metrics obtained by each optimal cluster.
 }
-\examples{
-data("ontMetrics")
-#ranges = getMetricRangeByCluster(ontMetrics, k.range=c(2,3), bs=20, seed=100)
-}

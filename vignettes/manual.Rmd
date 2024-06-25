@@ -14,7 +14,7 @@ author:
 - name: "Jesualdo Tomás Fernández-Breis"
   affiliation: *dis
 package: evaluomeR
-date: "2020-04-13"
+date: "2021-03-09"
 bibliography: ../inst/REFERENCES.bib
 biblio-style: apsr
 link-citations: yes

@@ -15,6 +15,15 @@ following analyses: Correlations, Stability and Goodness of classifications.
 
 Preferably, install **evaluomeR** from the latest stable version at the [release bioconductor repository](https://www.bioconductor.org/packages/release/bioc/html/evaluomeR.html) or [development bioconductor repository](https://www.bioconductor.org/packages/devel/bioc/html/evaluomeR.html).
 
+# Installation
+
+You can install latest version or any release version with:
+
+```bash
+devtools::install_github("neobernad/evaluomeR") # Latest commit
+devtools::install_github("neobernad/evaluomeR@v1.7.9") # Latest release
+```
+
 
 # Anaconda
 **evaluomeR** is also available in the Anaconda Cloud ([link](https://anaconda.org/bioconda/bioconductor-evaluomer)). You can install the package executing the following command:
