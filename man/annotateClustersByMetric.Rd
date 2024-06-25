@@ -34,5 +34,5 @@ assignment is performed by calculating the optimal k value by evaluome.
 \examples{
 data("ontMetrics")
 annotated_clusters=annotateClustersByMetric(ontMetrics, k.range=c(2,3), bs=20, seed=100)
-View(annotated_clusters[['ANOnto']])
+annotated_clusters[['ANOnto']]
 }

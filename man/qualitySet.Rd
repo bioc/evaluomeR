@@ -4,8 +4,8 @@
 \alias{qualitySet}
 \title{Goodness of classifications for a set of k clusters.}
 \usage{
-qualitySet(data, k.set = c(2, 4), cbi = "kmeans", getImages = FALSE,
-  seed = NULL, ...)
+qualitySet(data, k.set = c(2, 4), cbi = "kmeans",
+  all_metrics = FALSE, getImages = FALSE, seed = NULL, ...)
 }
 \arguments{
 \item{data}{A \code{\link{SummarizedExperiment}}.
@@ -23,6 +23,8 @@ The values must be contained in [2,15] range.}
 "kmeans", "clara", "clara_pam", "hclust", "pamk", "pamk_pam", "pamk".
 Any CBI appended with '_pam' makes use of \code{\link{pam}}.
 The method used in 'hclust' CBI is "ward.D2".}
+
+\item{all_metrics}{Boolean. If true, clustering is performed upon all the dataset.}
 
 \item{getImages}{Boolean. If true, a plot is displayed.}
 
