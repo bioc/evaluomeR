@@ -72,17 +72,17 @@ assay(dataFrame)
 # [19,] "WMCOnto2" "0.904134166028688" "0.883417390847072" "0.752468990321845"
 
 
-dataFrame <- stability(data=ontMetrics, cbi="kmeans", k=3, all_metrics = TRUE, bs=100)
-assay(dataFrame)
+#dataFrame <- stability(data=ontMetrics, cbi="kmeans", k=3, all_metrics = TRUE, bs=100)
+#assay(dataFrame)
 # Metric        Mean_stability_k_3
 # [1,] "all_metrics" "0.846238406081907"
 
-dataFrame <- stability(data=ontMetrics, cbi="kmeans", k=5, all_metrics = TRUE, bs=100)
-assay(dataFrame)
+#dataFrame <- stability(data=ontMetrics, cbi="kmeans", k=5, all_metrics = TRUE, bs=100)
+#assay(dataFrame)
 # Metric        Mean_stability_k_3
 # [1,] "all_metrics" "0.803322946463351"
 
-dataFrame <- stabilityRange(data=ontMetrics, cbi="kmeans", k.range = c(3,5), all_metrics = TRUE, bs=100)
-assay(dataFrame)
+#dataFrame <- stabilityRange(data=ontMetrics, cbi="kmeans", k.range = c(3,5), all_metrics = TRUE, bs=100)
+#assay(dataFrame)
 # Metric        Mean_stability_k_3  Mean_stability_k_4  Mean_stability_k_5
 # [1,] "all_metrics" "0.846238406081907" "0.783588073668732" "0.803322946463351"
