@@ -71,13 +71,13 @@ assay(dataFrame$k_4)
 # 18 "WMCOnto"  "0.811550829534933" "0.517887706724764" "0.751527957476758"  "0.232935788267106" "0.737070037248562"  "62"           "12"           "2"            "4"
 # 19 "WMCOnto2" "0.48724511207104"  "0.806794961402285" "0.613618761016468"  "0.458575230569131" "0.72940235766569"   "4"            "61"           "2"            "13"
 
-dataFrame <- qualityRange(data=ontMetrics, cbi="kmeans", k.range = c(3,4), all_metrics=TRUE, getImages = TRUE)
-assay(dataFrame$k_3)
+#dataFrame <- qualityRange(data=ontMetrics, cbi="kmeans", k.range = c(3,4), all_metrics=TRUE, getImages = TRUE)
+#assay(dataFrame$k_3)
 # Metric        Cluster_1_SilScore  Cluster_2_SilScore  Cluster_3_SilScore  Cluster_4_SilScore  Avg_Silhouette_Width Cluster_1_Size Cluster_2_Size Cluster_3_Size Cluster_4_Size
 # 1 "all_metrics" "0.560364615463509" "0.768006541644696" "0.761635263968552" "0.343459043619883" "0.730815149196402"  "2"            "70"           "2"            "6"
 
-dataFrame <- quality(data=ontMetrics, cbi="kmeans", k=4, all_metrics=TRUE)
-assay(dataFrame)
+#dataFrame <- quality(data=ontMetrics, cbi="kmeans", k=4, all_metrics=TRUE)
+#assay(dataFrame)
 # Metric        Cluster_1_SilScore  Cluster_2_SilScore  Cluster_3_SilScore  Cluster_4_SilScore  Avg_Silhouette_Width
 # [1,] "all_metrics" "0.560364615463509" "0.768006541644696" "0.761635263968552" "0.343459043619883" "0.730815149196402"
 # Cluster_1_Size Cluster_2_Size Cluster_3_Size Cluster_4_Size
